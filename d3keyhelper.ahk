@@ -203,7 +203,7 @@ GuiCreate(){
                 case 6:
                     Gui Add, Edit, x+5 yp-2 w60 vskillset%currentTab%s%A_Index%hotkey +Disabled, RButton
             }
-            Gui Add, DropDownList, x+10 w80 AltSubmit Choose%ac% gSetSkillsetDropdown vskillset%currentTab%s%A_Index%dropdown, 禁用||按住不放||连点||保持Buff
+            Gui Add, DropDownList, x+10 w80 AltSubmit Choose%ac% gSetSkillsetDropdown vskillset%currentTab%s%A_Index%dropdown, 禁用||按住不放||连点||保持Buff||按键触发
             Gui Add, Edit, vskillset%currentTab%s%A_Index%edit x+20 w90 Number
             Gui Add, Updown, vskillset%currentTab%s%A_Index%updown gSetSkillQueueWarning Range20-60000, % combats[currentTab][A_Index]["interval"]
             Gui Add, Edit, vskillset%currentTab%s%A_Index%delayedit hwndskillset%currentTab%s%A_Index%delayeditID x+25 w70
@@ -474,7 +474,8 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
                 IniRead, pr, %cfgFileName%, %cSection%, priority_%A_Index%, 1
                 IniRead, rp, %cfgFileName%, %cSection%, repeat_%A_Index%, 1
                 IniRead, rpiv, %cfgFileName%, %cSection%, repeatinterval_%A_Index%, 30
-                trow.Push({"hotkey":hk, "action":ac, "interval":iv, "delay":dy, "random":rd, "priority":pr, "repeat":rp, "repeatinterval":rpiv})
+                IniRead, tgbt, %cfgFileName%, %cSection%, triggerbutton_%A_Index%, LButton
+                trow.Push({"hotkey":hk, "action":ac, "interval":iv, "delay":dy, "random":rd, "priority":pr, "repeat":rp, "repeatinterval":rpiv, "triggerbutton": tgbt})
             }
             combats.Push(trow)
             IniRead, pfmd, %cfgFileName%, %cSection%, profilehkmethod, 1
@@ -512,7 +513,7 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
             crow:=[]
             loop, parse, hks, CSV
             {
-                crow.Push({"hotkey":A_LoopField, "action":1, "interval":300, "delay":10, "random": 1, "priority":1, "repeat":1, "repeatinterval":30})
+                crow.Push({"hotkey":A_LoopField, "action":1, "interval":300, "delay":10, "random": 1, "priority":1, "repeat":1, "repeatinterval":30, "triggerbutton": LButton})
             }
             combats.Push(crow)
             others.Push({"profilemethod":1, "profilehotkey":"", "movingmethod":1, "movinginterval":100
@@ -627,6 +628,7 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
             pr:=combats[cSection][A_Index]["priority"]
             rp:=combats[cSection][A_Index]["repeat"]
             rpiv:=combats[cSection][A_Index]["repeatinterval"]
+            tgbt:=combats[cSection][A_Index]["triggerbutton"]
             IniWrite, % skillset%cSection%s%A_Index%dropdown, %cfgFileName%, %nSction%, action_%A_Index%
             IniWrite, % skillset%cSection%s%A_Index%updown, %cfgFileName%, %nSction%, interval_%A_Index%
             IniWrite, % skillset%cSection%s%A_Index%delayupdown, %cfgFileName%, %nSction%, delay_%A_Index%
@@ -634,6 +636,7 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
             IniWrite, % pr, %cfgFileName%, %nSction%, priority_%A_Index%
             IniWrite, % rp, %cfgFileName%, %nSction%, repeat_%A_Index%
             IniWrite, % rpiv, %cfgFileName%, %nSction%, repeatinterval_%A_Index%
+            IniWrite, % tgbt, %cfgFileName%, %nSction%, triggerbutton_%A_Index%
             if (A_Index < 5)
             {
                 IniWrite, % skillset%cSection%s%A_Index%hotkey, %cfgFileName%, %nSction%, skill_%A_Index%
@@ -755,8 +758,8 @@ skillKey(currentProfile, nskill, D3W, D3H, forceStandingKey, useSkillQueue){
     k:=skillset%currentProfile%s%nskill%hotkey
     switch skillset%currentProfile%s%nskill%dropdown
     {
-        ; 连点
-        case 3:
+        ; 连点、左键触发
+        case 3,5:
             if !(vPausing) and vRunning
             {
                 if (abs(skillset%currentProfile%s%nskill%delayupdown)>20)
@@ -3199,6 +3202,10 @@ SetSkillsetDropdown:
                     GuiControl, Enable, skillset%npage%s%A_Index%edit
                     GuiControl, Disable, skillset%npage%s%A_Index%delayedit
                     GuiControl, Disable, skillset%npage%s%A_Index%randomckbox
+                case 5:
+                    GuiControl, Disable, skillset%npage%s%A_Index%edit
+                    GuiControl, Enable, skillset%npage%s%A_Index%delayedit
+                    GuiControl, Enable, skillset%npage%s%A_Index%randomckbox
             }
         }
     }
@@ -3289,6 +3296,9 @@ RunMarco:
                 }
                 GuiControlGet, skillset%currentProfile%s%currentIndex%updown
                 SetTimer, spamSkillKey%currentIndex%, % skillset%currentProfile%s%currentIndex%updown
+            case 5:
+                k:=combats[currentProfile][currentIndex]["triggerbutton"]
+                HotKey, ~*%k%, spamSkillKey%currentIndex%, on
             Default:
                 SetTimer, spamSkillKey%currentIndex%, off
         }
@@ -3350,6 +3360,8 @@ StopMarco:
     Loop, 6
     {
         SetTimer, spamSkillKey%A_Index%, off
+        k:=combats[currentProfile][A_Index]["triggerbutton"]
+        HotKey, ~*%k%, spamSkillKey%A_Index%, off
         if (A_Index <=4)
         {
             si:=A_Index
