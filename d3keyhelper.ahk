@@ -25,7 +25,7 @@ CoordMode, Pixel, Client
 CoordMode, Mouse, Client
 Process, Priority, , High
 
-VERSION:=230222
+VERSION:=260403
 MainWindowW:=900
 MainWindowH:=570
 CompactWindowW:=551
@@ -203,7 +203,7 @@ GuiCreate(){
                 case 6:
                     Gui Add, Edit, x+5 yp-2 w60 vskillset%currentTab%s%A_Index%hotkey +Disabled, RButton
             }
-            Gui Add, DropDownList, x+10 w80 AltSubmit Choose%ac% gSetSkillsetDropdown vskillset%currentTab%s%A_Index%dropdown, 禁用||按住不放||连点||保持Buff
+            Gui Add, DropDownList, x+10 w80 AltSubmit Choose%ac% gSetSkillsetDropdown vskillset%currentTab%s%A_Index%dropdown, 禁用||按住不放||连点||保持Buff||按键触发
             Gui Add, Edit, vskillset%currentTab%s%A_Index%edit x+20 w90 Number
             Gui Add, Updown, vskillset%currentTab%s%A_Index%updown gSetSkillQueueWarning Range20-60000, % combats[currentTab][A_Index]["interval"]
             Gui Add, Edit, vskillset%currentTab%s%A_Index%delayedit hwndskillset%currentTab%s%A_Index%delayeditID x+25 w70
@@ -284,9 +284,9 @@ GuiCreate(){
     Gui Add, Updown, vextraLootHelperUpdown Range2-99, % generals.loothelpertimes
 
     Gui Add, CheckBox, % "xs+20 yp+40 hwndextraSalvageHelperCkboxID vextraSalvageHelperCkbox gSetSalvageHelper Checked" generals.enablesalvagehelper, 铁匠分解助手：
-    Gui Add, DropDownList, % "x+5 yp-4 w180 AltSubmit hwndextraSalvageHelperDropdownID vextraSalvageHelperDropdown gSetSalvageHelper Choose" generals.salvagehelpermethod, 快速分解||一键分解||智能分解||智能分解（留神圣，太古）||智能分解（只留太古）
+    Gui Add, DropDownList, % "x+5 yp-4 w180 AltSubmit hwndextraSalvageHelperDropdownID vextraSalvageHelperDropdown gSetSalvageHelper Choose" generals.salvagehelpermethod, 快速分解||一键分解||智能分解||智能分解（留神圣，无形，太古）||智能分解（只留太古）
     AddToolTip(extraSalvageHelperCkboxID, "分解装备时按下助手快捷键可以自动执行所选择的策略")
-    AddToolTip(extraSalvageHelperDropdownID, "快速分解：按下快捷键即等同于点击鼠标左键+回车`n一键分解：一键分解背包内所有非安全格的装备`n智能分解：同一键分解，但会跳过远古，神圣，太古`n智能分解（留神圣，太古）：只保留神圣，太古装备`n智能分解（只留太古）：只保留太古装备")
+    AddToolTip(extraSalvageHelperDropdownID, "快速分解：按下快捷键即等同于点击鼠标左键+回车`n一键分解：一键分解背包内所有非安全格的装备`n智能分解：同一键分解，但会跳过远古，神圣，太古`n智能分解（留神圣，无形，太古）：只保留神圣，无形，太古装备`n智能分解（只留太古）：只保留太古装备")
 
     Gui Add, CheckBox, % "xs+20 yp+40 hwndextraReforgeHelperCkboxID vextraReforgeHelperCkbox gSetReforgeHelper Checked" generals.enablereforgehelper, 魔盒重铸助手：
     Gui Add, DropDownList, % "x+5 yp-4 w180 AltSubmit hwndextraReforgeHelperDropdownID vextraReforgeHelperDropdown Choose" generals.reforgehelpermethod, 重铸一次||重铸直到远古，太古||重铸直到太古
@@ -474,7 +474,8 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
                 IniRead, pr, %cfgFileName%, %cSection%, priority_%A_Index%, 1
                 IniRead, rp, %cfgFileName%, %cSection%, repeat_%A_Index%, 1
                 IniRead, rpiv, %cfgFileName%, %cSection%, repeatinterval_%A_Index%, 30
-                trow.Push({"hotkey":hk, "action":ac, "interval":iv, "delay":dy, "random":rd, "priority":pr, "repeat":rp, "repeatinterval":rpiv})
+                IniRead, tgbt, %cfgFileName%, %cSection%, triggerbutton_%A_Index%, LButton
+                trow.Push({"hotkey":hk, "action":ac, "interval":iv, "delay":dy, "random":rd, "priority":pr, "repeat":rp, "repeatinterval":rpiv, "triggerbutton": tgbt})
             }
             combats.Push(trow)
             IniRead, pfmd, %cfgFileName%, %cSection%, profilehkmethod, 1
@@ -512,7 +513,7 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
             crow:=[]
             loop, parse, hks, CSV
             {
-                crow.Push({"hotkey":A_LoopField, "action":1, "interval":300, "delay":10, "random": 1, "priority":1, "repeat":1, "repeatinterval":30})
+                crow.Push({"hotkey":A_LoopField, "action":1, "interval":300, "delay":10, "random": 1, "priority":1, "repeat":1, "repeatinterval":30, "triggerbutton": LButton})
             }
             combats.Push(crow)
             others.Push({"profilemethod":1, "profilehotkey":"", "movingmethod":1, "movinginterval":100
@@ -627,6 +628,7 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
             pr:=combats[cSection][A_Index]["priority"]
             rp:=combats[cSection][A_Index]["repeat"]
             rpiv:=combats[cSection][A_Index]["repeatinterval"]
+            tgbt:=combats[cSection][A_Index]["triggerbutton"]
             IniWrite, % skillset%cSection%s%A_Index%dropdown, %cfgFileName%, %nSction%, action_%A_Index%
             IniWrite, % skillset%cSection%s%A_Index%updown, %cfgFileName%, %nSction%, interval_%A_Index%
             IniWrite, % skillset%cSection%s%A_Index%delayupdown, %cfgFileName%, %nSction%, delay_%A_Index%
@@ -634,6 +636,7 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
             IniWrite, % pr, %cfgFileName%, %nSction%, priority_%A_Index%
             IniWrite, % rp, %cfgFileName%, %nSction%, repeat_%A_Index%
             IniWrite, % rpiv, %cfgFileName%, %nSction%, repeatinterval_%A_Index%
+            IniWrite, % tgbt, %cfgFileName%, %nSction%, triggerbutton_%A_Index%
             if (A_Index < 5)
             {
                 IniWrite, % skillset%cSection%s%A_Index%hotkey, %cfgFileName%, %nSction%, skill_%A_Index%
@@ -755,8 +758,8 @@ skillKey(currentProfile, nskill, D3W, D3H, forceStandingKey, useSkillQueue){
     k:=skillset%currentProfile%s%nskill%hotkey
     switch skillset%currentProfile%s%nskill%dropdown
     {
-        ; 连点
-        case 3:
+        ; 连点、左键触发
+        case 3,5:
             if !(vPausing) and vRunning
             {
                 if (abs(skillset%currentProfile%s%nskill%delayupdown)>20)
@@ -1362,7 +1365,7 @@ oneButtonSalvageHelper(D3W, D3H, xpos, ypos){
     fn1:=Func("scanInventorySpaceGDIP").Bind(D3W, D3H)
     SetTimer, %fn1%, -1
 
-    q:=0    ; 当前格子装备品质，2：普通传奇，3：远古传奇，4：神圣装备，5：太古传奇
+    q:=0    ; 当前格子装备品质，2：普通传奇，3：远古传奇，4：神圣或无形装备，5：太古传奇
     i:=1    ; 当前格子ID
     w:=0
     SetDefaultMouseSpeed, mouseDelay
@@ -1405,6 +1408,9 @@ oneButtonSalvageHelper(D3W, D3H, xpos, ypos){
                         q:=(c[2]<35) ? 5:3
                     } else if (c[3]>100 and c[3]>c[2] and c[2]>c[1]) {
                         ; 装备是神圣装备
+                        q:=4
+                    } else if (c[1]<50 and c[2]>c[3] and c[3]>c[1]) {
+                        ; 装备是无形武器
                         q:=4
                     } else {
                         ; 装备是普通传奇
@@ -1574,13 +1580,11 @@ oneButtonAbandonHelper(D3W, D3H, xpos, ypos, mousePosition){
 /*
 负责自动喝药
 参数：
-    D3W：int，窗口区域的宽度
-    D3H：int，窗口区域的高度
     action: int，自动喝药策略
 */
-potionHelper(D3W, D3H, action){
+potionHelper(action){
     local
-    Global vPausing, potionKey, gameX, gameY, lastpotion
+    Global vPausing, potionKey, gameX, gameY, lastpotion, D3W, D3H
     static _x := 1822
     static _y := 1340
     static _w := 66
@@ -1591,7 +1595,10 @@ potionHelper(D3W, D3H, action){
             case 2:
                 Send {%potionKey%}
             case 3:
+                ; 卡CD喝药
+                ; 对药水图标区域截图，并且和上次对比
                 currentpotion:=getPixelsRGB(Round(D3W/2-(3440/2-1822)*D3H/1440), Round(_y*D3H/1440), Round(_w*D3H/1440), Round(_w*D3H/1440), "", True, gameX, gameY)
+                ; 如果两次截图相同则药水已冷却，按下喝药按键
                 if (lastpotion and isArraysEqual(lastpotion, currentpotion[1], 0)) {
                     Send {%potionKey%}
                 }
@@ -3198,6 +3205,10 @@ SetSkillsetDropdown:
                     GuiControl, Enable, skillset%npage%s%A_Index%edit
                     GuiControl, Disable, skillset%npage%s%A_Index%delayedit
                     GuiControl, Disable, skillset%npage%s%A_Index%randomckbox
+                case 5:
+                    GuiControl, Disable, skillset%npage%s%A_Index%edit
+                    GuiControl, Enable, skillset%npage%s%A_Index%delayedit
+                    GuiControl, Enable, skillset%npage%s%A_Index%randomckbox
             }
         }
     }
@@ -3288,6 +3299,9 @@ RunMarco:
                 }
                 GuiControlGet, skillset%currentProfile%s%currentIndex%updown
                 SetTimer, spamSkillKey%currentIndex%, % skillset%currentProfile%s%currentIndex%updown
+            case 5:
+                k:=combats[currentProfile][currentIndex]["triggerbutton"]
+                HotKey, ~*%k%, spamSkillKey%currentIndex%, on
             Default:
                 SetTimer, spamSkillKey%currentIndex%, off
         }
@@ -3318,8 +3332,11 @@ RunMarco:
     GuiControlGet, skillset%currentProfile%potiondropdown
     if (skillset%currentProfile%potiondropdown > 1)
     {
+        if IsObject(pofunc){
+            SetTimer, %pofunc%, off
+        }
         GuiControlGet, skillset%currentProfile%potionedit
-        pofunc:=Func("potionHelper").Bind(D3W, D3H, skillset%currentProfile%potiondropdown)
+        pofunc:=Func("potionHelper").Bind(skillset%currentProfile%potiondropdown)
         SetTimer, %pofunc%, % skillset%currentProfile%potionupdown
     }
     ; 处理按键队列
@@ -3346,6 +3363,8 @@ StopMarco:
     Loop, 6
     {
         SetTimer, spamSkillKey%A_Index%, off
+        k:=combats[currentProfile][A_Index]["triggerbutton"]
+        HotKey, ~*%k%, spamSkillKey%A_Index%, off
         if (A_Index <=4)
         {
             si:=A_Index
