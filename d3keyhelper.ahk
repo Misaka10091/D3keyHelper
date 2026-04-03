@@ -25,7 +25,7 @@ CoordMode, Pixel, Client
 CoordMode, Mouse, Client
 Process, Priority, , High
 
-VERSION:=230301
+VERSION:=260403
 MainWindowW:=900
 MainWindowH:=570
 CompactWindowW:=551
