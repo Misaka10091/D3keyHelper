@@ -1008,7 +1008,7 @@ oldsandHelper(){
                         r[5]:=getPixelRGB(p[4])
                     }
                     ; 灰色按钮为禁用态，只点击带有对应品质高亮色的按钮。
-                    buttonEnabled:=[r[3][1]>135, r[4][3]>135, r[5][1]>100]
+                    buttonEnabled:=[Min(r[3][1], r[3][2], r[3][3])>100, r[4][3]-r[4][1]>20 and r[4][3]-r[4][2]>10, r[5][1]-r[5][3]>20 and r[5][2]-r[5][3]>10]
                     _wait:=-1
                     for i, buttonIndex in [2, 3, 4]
                     {
@@ -2240,21 +2240,19 @@ isSalvagePageOpen(D3W, D3H){
     c2:=getPixelRGB([Round(351*D3H/1440),Round(107*D3H/1440)])
     c3:=getPixelRGB([Round(388*D3H/1440),Round(86*D3H/1440)])
     c4:=getPixelRGB([Round(673*D3H/1440),Round(1040*D3H/1440)])
-    if (c1[3]>c1[2] and c1[2]>c1[1] and c1[3]>170 and c1[3]-c1[1]>80 and c3[3]>c3[2] and c3[2]>c3[1] and c3[3]>110 and c2[1]+c2[2]>350 and c4[1]>50 and c4[2]<15 and c4[3]<15){
-        p:=getSalvageIconXY(D3W, D3H, "edge")
-        cLeg:=getPixelRGB(p[1])
-        cWhite:=getPixelRGB(p[2])
-        cBlue:=getPixelRGB(p[3])
-        cRare:=getPixelRGB(p[4])
-        if (cBlue[3]>cBlue[2] and cBlue[2]>cBlue[1] and cRare[3]<20 and cRare[1]>cRare[2] and cRare[2]>cRare[3]) {
-            Return [2, cLeg, cWhite, cBlue, cRare]
-        } Else {
-            Return [1]
-        }
-    }
-    Else {
-        Return [0]
-    }
+    p:=getSalvageIconXY(D3W, D3H, "edge")
+    cLeg:=getPixelRGB(p[1])
+    cWhite:=getPixelRGB(p[2])
+    cBlue:=getPixelRGB(p[3])
+    cRare:=getPixelRGB(p[4])
+    headerVisible:=(c1[3]>c1[2] and c1[2]>c1[1] and c1[3]>170 and c1[3]-c1[1]>80 and c3[3]>c3[2] and c3[2]>c3[1] and c3[3]>110 and c2[1]+c2[2]>350)
+    blacksmithFrameVisible:=(c4[1]>50 and c4[2]<15 and c4[3]<15)
+    salvageButtonsVisible:=(cBlue[3]>cBlue[2] and cBlue[2]>cBlue[1] and cRare[3]<20 and cRare[1]>cRare[2] and cRare[2]>cRare[3])
+    if (blacksmithFrameVisible and salvageButtonsVisible)
+        Return [2, cLeg, cWhite, cBlue, cRare]
+    if (blacksmithFrameVisible and headerVisible)
+        Return [1]
+    Return [0]
 }
 
 /*
