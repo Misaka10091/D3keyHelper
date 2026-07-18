@@ -42,14 +42,23 @@ jobs:
           }
           "AHK2EXE=$compiler" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Build executable
+      - name: Build package
         shell: pwsh
         run: .\build.cmd -CompilerPath $env:AHK2EXE
 
-      - name: Upload executable
+      - name: Resolve artifact version
+        shell: pwsh
+        run: |
+          $archives = @(Get-ChildItem -LiteralPath "dist" -Filter "D3keyHelper-v*-windows-x64.zip")
+          if ($archives.Count -ne 1) {
+            throw "Expected exactly one versioned package, found $($archives.Count)."
+          }
+          "BUILD_ARTIFACT=$($archives[0].BaseName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: D3keyHelper-windows-x64
+          name: ${{ env.BUILD_ARTIFACT }}
           path: dist/D3keyHelper.exe
           if-no-files-found: error
           retention-days: 14

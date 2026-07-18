@@ -72,4 +72,14 @@ if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
     throw "Ahk2Exe completed without creating the expected output: $OutputPath"
 }
 
+$fileVersion = (Get-Item -LiteralPath $OutputPath).VersionInfo.FileVersion
+if (-not $fileVersion -or $fileVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+    throw "The compiled executable has an invalid file version: $fileVersion"
+}
+
+$archiveName = "D3keyHelper-v$fileVersion-windows-x64.zip"
+$archivePath = Join-Path $outputDirectory $archiveName
+Compress-Archive -LiteralPath $OutputPath -DestinationPath $archivePath -CompressionLevel Optimal -Force
+
 Write-Host "Build completed: $OutputPath" -ForegroundColor Green
+Write-Host "Package created: $archivePath" -ForegroundColor Green
