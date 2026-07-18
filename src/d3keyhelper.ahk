@@ -1,6 +1,5 @@
 ﻿; =================================================================
-;                  暗黑3 “老沙”按键助手  (MIT License)
-; Designed by Oldsand
+;                  D3KeyHelper  (MIT License)
 ; 转载请注明原作者
 ; 
 ; 
@@ -29,6 +28,7 @@ Process, Priority, , High
 CONFIG_SCHEMA_VERSION:=260403 ; 仅在配置结构变化时递增，与应用发布版本无关
 DISPLAY_VERSION:="development"
 PROFILE_DIRECTORY:="profiles"
+SETTINGS_FILE:="settings.ini"
 PROJECT_HOMEPAGE:="https://github.com/Misaka10091/D3keyHelper"
 PROJECT_MAINTAINER:="Misaka10091"
 ORIGINAL_AUTHOR:="Oldsand"
@@ -51,10 +51,10 @@ TitleBarHight:=25
 ;@Ahk2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetDescription 暗黑3技能连点器
 ;@Ahk2Exe-SetProductName D3keyHelper
-;@Ahk2Exe-SetCopyright Oldsand
+;@Ahk2Exe-SetCopyright Misaka10091
 ;@Ahk2Exe-Bin Unicode 64-bit.bin
 ; ========================================来自配置文件的全局变量===================================================
-currentProfile:=ReadCfgFile("d3oldsand.ini", tabs, combats, others, generals)
+currentProfile:=ReadCfgFile(SETTINGS_FILE, tabs, profileFiles, combats, others, generals)
 SendMode, % generals.sendmode
 tabsarray:=StrSplit(tabs, "`|")
 tabslen:=ObjCount(tabsarray)
@@ -82,6 +82,8 @@ buffpercent:=(generals.buffpercent>=0 and generals.buffpercent<=1)? generals.buf
 GuiCreate()
 SetTrayMenu()
 StartUp()
+if !FileExist(SETTINGS_FILE)
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
 showMainWindow(isCompact? CompactWindowW:MainWindowW, MainWindowH)
 
 OnExit("OnUnload")
@@ -270,12 +272,12 @@ GuiCreate(){
     GuiControl, Choose, ActiveTab, % currentProfile
 
     Gui Add, GroupBox, x%helperSettingGroupx% ym+40 w338 h470 section, 辅助功能
-    oldsandhelperhk:=generals.oldsandhelperhk
+    utilityHelperHK:=generals.helperhotkey
     Gui Font,s10
     Gui Add, Text, xs+20 ys+30 +cRed, 助手宏启动快捷键：
     Gui Font,s9
-    Gui Add, DropDownList, % "x+0 yp-3 w75 vhelperKeybindingdropdown gSetHelperKeybinding AltSubmit Choose" generals.oldsandhelpermethod, 无||鼠标中键||滚轮向上||滚轮向下||侧键1||侧键2||键盘按键
-    Gui Add, Hotkey, x+5 w70 vhelperKeybindingHK gSetHelperKeybinding, %oldsandhelperhk%
+    Gui Add, DropDownList, % "x+0 yp-3 w75 vhelperKeybindingdropdown gSetHelperKeybinding AltSubmit Choose" generals.helpermethod, 无||鼠标中键||滚轮向上||滚轮向下||侧键1||侧键2||键盘按键
+    Gui Add, Hotkey, x+5 w70 vhelperKeybindingHK gSetHelperKeybinding, %utilityHelperHK%
 
     Gui Add, Text, xs+20 yp+40 hwndhelperSpeedTextID gdummyFunction, 助手宏动画速度：
     AddToolTip(helperSpeedTextID, "当网络延迟较高时，适当降低动画速度可以减少宏出错的概率")
@@ -539,7 +541,7 @@ ApplyAppSettings(){
     Gui, 1:Default
     SetSalvageHelper()
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     Return True
 }
 
@@ -601,26 +603,35 @@ SetTrayMenu(){
 参数：
     cfgFileName：文件名
     tabs：ByRef String，存储由竖线“|”分隔的配置名，用于初始化Tab控件
+    profileFiles：ByRef Array，按界面顺序存储Profile文件名
     combats：ByRef Array，存储战斗宏相关配置
     others：ByRef Array，存储额外配置
     generals：ByRef Array，存储一些通用配置
 返回：
     上次退出时激活的配置编号，用于初始化Tab控件
 */
-ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals){
+ReadCfgFile(cfgFileName, ByRef tabs, ByRef profileFiles, ByRef combats, ByRef others, ByRef generals){
     local
-    Global CONFIG_SCHEMA_VERSION
+    Global CONFIG_SCHEMA_VERSION, PROFILE_DIRECTORY
+
+    activatedProfileFile:=""
+    generals:={"enablegamblehelper":1, "gamblehelpertimes":15, "helperhotkey":"F5", "helpermethod":7
+    , "d3only":1, "maxreforge":10, "startmethod":7, "starthotkey":"F2", "enablesmartpause":1
+    , "salvagehelpermethod":1, "reforgehelpermethod":1, "enablesalvagehelper":0, "enablesoundplay":1
+    , "enableconverthelper":0, "enablereforgehelper":0, "enableupgradehelper":0, "enableabandonhelper":0
+    , "runonstart":1, "custommoving":0, "custommovinghk":"e", "customstanding":0, "customstandinghk":"LShift"
+    , "custompotion":0, "custompotionhk":"q", "helpermousespeed":2, "safezone":"61,62,63"
+    , "helperspeed":3, "gamegamma":1.000000, "sendmode":"Event", "helperanimationdelay":150
+    , "buffpercent":0.050000, "enableloothelper":0, "loothelpertimes":30, "compactmode":0, "gameresolution":"Auto"}
+
     if FileExist(cfgFileName)
     {
-        generals:={}
-        IniRead, ver, %cfgFileName%, General, version
+        IniRead, ver, %cfgFileName%, General, version, 0
         if (CONFIG_SCHEMA_VERSION != ver)
-        {
             MsgBox, 配置文件版本不匹配。程序会尽量兼容读取，请在“应用设置”中检查后重新保存。
-        }
-        IniRead, currentProfile, %cfgFileName%, General, activatedprofile, 1
-        IniRead, oldsandhelperhk, %cfgFileName%, General, oldsandhelperhk, F5
-        IniRead, oldsandhelpermethod, %cfgFileName%, General, oldsandhelpermethod, 7
+        IniRead, activatedProfileFile, %cfgFileName%, General, activatedprofile
+        IniRead, helperhotkey, %cfgFileName%, General, helperhotkey, F5
+        IniRead, helpermethod, %cfgFileName%, General, helpermethod, 7
         IniRead, enablegamblehelper, %cfgFileName%, General, enablegamblehelper, 1
         IniRead, gamblehelpertimes, %cfgFileName%, General, gamblehelpertimes, 15
         IniRead, enablesalvagehelper, %cfgFileName%, General, enablesalvagehelper, 0
@@ -643,128 +654,93 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
         IniRead, safezone, %cfgFileName%, General, safezone, "61,62,63"
         IniRead, helperspeed, %cfgFileName%, General, helperspeed, 3
         IniRead, gamegamma, %cfgFileName%, General, gamegamma, 1.000000
-        IniRead, sendmode, %cfgFileName%, General, sendmode, "Event"
+        IniRead, sendmode, %cfgFileName%, General, sendmode, Event
         IniRead, buffpercent, %cfgFileName%, General, buffpercent, 0.050000
         IniRead, compactmode, %cfgFileName%, General, compactmode, 0
         IniRead, runonstart, %cfgFileName%, General, runonstart, 1
-        IniRead, gameresolution, %cfgFileName%, General, gameresolution, "Auto"
+        IniRead, gameresolution, %cfgFileName%, General, gameresolution, Auto
         IniRead, enableloothelper, %cfgFileName%, General, enableloothelper, 0
         IniRead, loothelpertimes, %cfgFileName%, General, loothelpertimes, 30
         IniRead, helpermousespeed, %cfgFileName%, General, helpermousespeed, 2
         IniRead, helperanimationdelay, %cfgFileName%, General, helperanimationdelay, 150
         IniRead, d3only, %cfgFileName%, General, d3only, 1
         IniRead, maxreforge, %cfgFileName%, General, maxreforge, 10
-        generals:={"oldsandhelpermethod":oldsandhelpermethod, "oldsandhelperhk":oldsandhelperhk, "maxreforge":maxreforge
+        generals:={"helpermethod":helpermethod, "helperhotkey":helperhotkey, "maxreforge":maxreforge
         , "enablesalvagehelper":enablesalvagehelper, "salvagehelpermethod":salvagehelpermethod, "reforgehelpermethod":reforgehelpermethod
         , "d3only":d3only, "enablereforgehelper":enablereforgehelper, "runonstart":runonstart, "gameresolution":gameresolution
         , "enablegamblehelper":enablegamblehelper, "gamblehelpertimes":gamblehelpertimes, "helpermousespeed":helpermousespeed
         , "startmethod":startmethod, "starthotkey":starthotkey, "enableupgradehelper":enableupgradehelper, "helperanimationdelay":helperanimationdelay
         , "enablesmartpause":enablesmartpause, "enablesoundplay":enablesoundplay, "enableconverthelper":enableconverthelper, "enableabandonhelper":enableabandonhelper
         , "custommoving":custommoving, "custommovinghk":custommovinghk, "customstanding":customstanding, "customstandinghk":customstandinghk
-        , "custompotion":custompotion, "custompotionhk":custompotionhk
-        , "safezone":safezone, "helperspeed":helperspeed, "gamegamma":gamegamma, "sendmode":sendmode, "buffpercent":buffpercent
-        , "enableloothelper":enableloothelper, "loothelpertimes":loothelpertimes, "compactmode":compactmode}
-
-        ; 新格式仅在主配置中保存清单，每个 profile 使用独立文件。
-        ; 未找到清单时回退读取旧版 section，下一次保存时自动完成迁移。
-        IniRead, profileList, %cfgFileName%, General, profiles, __legacy__
-        isLegacyProfileStorage:=(profileList="__legacy__")
-        if isLegacyProfileStorage
-        {
-            IniRead, tabs, %cfgFileName%
-            tabs:=StrReplace(StrReplace(tabs, "`n", "`|"), "General|", "")
-        }
-        Else
-        {
-            tabs:=profileList
-        }
-        if (tabs="")
-            tabs:="配置1"
-        combats:=[]
-        others:=[]
-        Loop, parse, tabs, `|
-        {
-            cSection:=A_LoopField
-            profileFile:=GetProfileFile(A_Index)
-            if (!isLegacyProfileStorage and FileExist(profileFile))
-            {
-                sourceFile:=profileFile
-                sourceSection:="Profile"
-            }
-            Else
-            {
-                sourceFile:=cfgFileName
-                sourceSection:=cSection
-            }
-            trow:=[]
-            tos:={}
-            Loop, 6
-            {
-                IniRead, hk, %sourceFile%, %sourceSection%, skill_%A_Index%, %A_Index%
-                IniRead, ac, %sourceFile%, %sourceSection%, action_%A_Index%, 1
-                IniRead, iv, %sourceFile%, %sourceSection%, interval_%A_Index%, 300
-                IniRead, dy, %sourceFile%, %sourceSection%, delay_%A_Index%, 10
-                IniRead, rd, %sourceFile%, %sourceSection%, random_%A_Index%, 1
-                IniRead, pr, %sourceFile%, %sourceSection%, priority_%A_Index%, 1
-                IniRead, rp, %sourceFile%, %sourceSection%, repeat_%A_Index%, 1
-                IniRead, rpiv, %sourceFile%, %sourceSection%, repeatinterval_%A_Index%, 30
-                IniRead, tgbt, %sourceFile%, %sourceSection%, triggerbutton_%A_Index%, LButton
-                trow.Push({"hotkey":hk, "action":ac, "interval":iv, "delay":dy, "random":rd, "priority":pr, "repeat":rp, "repeatinterval":rpiv, "triggerbutton": tgbt})
-            }
-            combats.Push(trow)
-            IniRead, pfmd, %sourceFile%, %sourceSection%, profilehkmethod, 1
-            IniRead, pfhk, %sourceFile%, %sourceSection%, profilehkkey
-            IniRead, pfmv, %sourceFile%, %sourceSection%, movingmethod, 1
-            IniRead, pfmi, %sourceFile%, %sourceSection%, movinginterval, 100
-            IniRead, pfpo, %sourceFile%, %sourceSection%, potionmethod, 1
-            IniRead, pfpi, %sourceFile%, %sourceSection%, potioninterval, 500
-            IniRead, pflm, %sourceFile%, %sourceSection%, lazymode, 1
-            IniRead, pfqp, %sourceFile%, %sourceSection%, enablequickpause, 0
-            IniRead, pfqpm1, %sourceFile%, %sourceSection%, quickpausemethod1, 1
-            IniRead, pfqpm2, %sourceFile%, %sourceSection%, quickpausemethod2, 1
-            IniRead, pfqpm3, %sourceFile%, %sourceSection%, quickpausemethod3, 1
-            IniRead, pfqpdy, %sourceFile%, %sourceSection%, quickpausedelay, 1500
-            IniRead, pfusq, %sourceFile%, %sourceSection%, useskillqueue, 0
-            IniRead, pfusqiv, %sourceFile%, %sourceSection%, useskillqueueinterval, 200
-            IniRead, pfasm, %sourceFile%, %sourceSection%, autostartmarco, 0
-            tos:={"profilemethod":pfmd, "profilehotkey":pfhk, "movingmethod":pfmv, "movinginterval":pfmi
-            , "potionmethod":pfpo, "potioninterval":pfpi, "lazymode":pflm
-            , "enablequickpause":pfqp, "quickpausemethod1":pfqpm1, "quickpausemethod2":pfqpm2, "quickpausemethod3":pfqpm3
-            , "quickpausedelay":pfqpdy, "useskillqueue":pfusq, "useskillqueueinterval":pfusqiv, "autostartmarco":pfasm}
-            others.Push(tos)
-        }
-        if (currentProfile<1 or currentProfile>combats.Count())
-            currentProfile:=1
-
+        , "custompotion":custompotion, "custompotionhk":custompotionhk, "safezone":safezone, "helperspeed":helperspeed
+        , "gamegamma":gamegamma, "sendmode":sendmode, "buffpercent":buffpercent, "enableloothelper":enableloothelper
+        , "loothelpertimes":loothelpertimes, "compactmode":compactmode}
     }
-    Else
+
+    FileCreateDir, %PROFILE_DIRECTORY%
+    profileFileList:=""
+    Loop, Files, % PROFILE_DIRECTORY "\*.ini", F
+        profileFileList .= A_LoopFileName "`n"
+    Sort, profileFileList
+    profileFileList:=RTrim(profileFileList, "`n")
+    if (profileFileList="")
     {
-        tabs=配置1|配置2|配置3|配置4
-        currentProfile:=1
-        combats:=[]
-        others:=[]
-        hks:="1,2,3,4,LButton,RButton"
-        Loop, parse, tabs, `|
+        defaultProfileFile:="配置1.ini"
+        CreateDefaultProfileFile(PROFILE_DIRECTORY "\" defaultProfileFile)
+        profileFileList:=defaultProfileFile
+    }
+
+    tabs:=""
+    profileFiles:=[]
+    combats:=[]
+    others:=[]
+    currentProfile:=1
+    Loop, Parse, profileFileList, `n, `r
+    {
+        profileFileName:=A_LoopField
+        if (profileFileName="")
+            Continue
+        profileFiles.Push(profileFileName)
+        profileName:=RegExReplace(profileFileName, "i)\.ini$")
+        tabs .= (tabs="" ? "" : "|") profileName
+        if (profileFileName=activatedProfileFile)
+            currentProfile:=A_Index
+        sourceFile:=PROFILE_DIRECTORY "\" profileFileName
+        trow:=[]
+        Loop, 6
         {
-            crow:=[]
-            loop, parse, hks, CSV
-            {
-                crow.Push({"hotkey":A_LoopField, "action":1, "interval":300, "delay":10, "random": 1, "priority":1, "repeat":1, "repeatinterval":30, "triggerbutton": LButton})
-            }
-            combats.Push(crow)
-            others.Push({"profilemethod":1, "profilehotkey":"", "movingmethod":1, "movinginterval":100
-            , "potionmethod":1, "potioninterval":500, "lazymode":1
-            , "enablequickpause":0, "quickpausemethod1":1, "quickpausemethod2":1, "quickpausemethod3":1, "quickpausedelay":1500
-            , "useskillqueue":0, "useskillqueueinterval":200, "autostartmarco":0})
+            IniRead, hk, %sourceFile%, Profile, skill_%A_Index%, %A_Index%
+            IniRead, ac, %sourceFile%, Profile, action_%A_Index%, 1
+            IniRead, iv, %sourceFile%, Profile, interval_%A_Index%, 300
+            IniRead, dy, %sourceFile%, Profile, delay_%A_Index%, 10
+            IniRead, rd, %sourceFile%, Profile, random_%A_Index%, 1
+            IniRead, pr, %sourceFile%, Profile, priority_%A_Index%, 1
+            IniRead, rp, %sourceFile%, Profile, repeat_%A_Index%, 1
+            IniRead, rpiv, %sourceFile%, Profile, repeatinterval_%A_Index%, 30
+            IniRead, tgbt, %sourceFile%, Profile, triggerbutton_%A_Index%, LButton
+            trow.Push({"hotkey":hk, "action":ac, "interval":iv, "delay":dy, "random":rd, "priority":pr
+            , "repeat":rp, "repeatinterval":rpiv, "triggerbutton":tgbt})
         }
-        generals:={"enablegamblehelper":1 ,"gamblehelpertimes":15, "oldsandhelperhk":"F5", "d3only":1, "maxreforge":10
-        , "startmethod":7, "starthotkey":"F2", "enablesmartpause":1, "salvagehelpermethod":1, "reforgehelpermethod":1
-        , "oldsandhelpermethod":7, "enablesalvagehelper":0, "enablesoundplay":1, "enableconverthelper":0
-        , "enablereforgehelper":0, "enableupgradehelper":0, "enableabandonhelper":0, "runonstart":1
-        , "custommoving":0, "custommovinghk":"e", "customstanding":0, "customstandinghk":"LShift"
-        , "custompotion":0, "custompotionhk":"q", "helpermousespeed":2
-        , "safezone":"61,62,63", "helperspeed":3, "gamegamma":1.000000, "sendmode":"Event", "helperanimationdelay":150
-        , "buffpercent":0.050000, "enableloothelper":0, "loothelpertimes":30, "compactmode":0, "gameresolution":"Auto"}
+        combats.Push(trow)
+        IniRead, pfmd, %sourceFile%, Profile, profilehkmethod, 1
+        IniRead, pfhk, %sourceFile%, Profile, profilehkkey
+        IniRead, pfmv, %sourceFile%, Profile, movingmethod, 1
+        IniRead, pfmi, %sourceFile%, Profile, movinginterval, 100
+        IniRead, pfpo, %sourceFile%, Profile, potionmethod, 1
+        IniRead, pfpi, %sourceFile%, Profile, potioninterval, 500
+        IniRead, pflm, %sourceFile%, Profile, lazymode, 1
+        IniRead, pfqp, %sourceFile%, Profile, enablequickpause, 0
+        IniRead, pfqpm1, %sourceFile%, Profile, quickpausemethod1, 1
+        IniRead, pfqpm2, %sourceFile%, Profile, quickpausemethod2, 1
+        IniRead, pfqpm3, %sourceFile%, Profile, quickpausemethod3, 1
+        IniRead, pfqpdy, %sourceFile%, Profile, quickpausedelay, 1500
+        IniRead, pfusq, %sourceFile%, Profile, useskillqueue, 0
+        IniRead, pfusqiv, %sourceFile%, Profile, useskillqueueinterval, 200
+        IniRead, pfasm, %sourceFile%, Profile, autostartmarco, 0
+        others.Push({"profilemethod":pfmd, "profilehotkey":pfhk, "movingmethod":pfmv, "movinginterval":pfmi
+        , "potionmethod":pfpo, "potioninterval":pfpi, "lazymode":pflm, "enablequickpause":pfqp
+        , "quickpausemethod1":pfqpm1, "quickpausemethod2":pfqpm2, "quickpausemethod3":pfqpm3
+        , "quickpausedelay":pfqpdy, "useskillqueue":pfusq, "useskillqueueinterval":pfusqiv, "autostartmarco":pfasm})
     }
     Return currentProfile
 }
@@ -773,14 +749,14 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
 保存配置文件
 参数：
     cfgFileName：文件名
-    tabs：String，由竖线“|”分隔的配置名
+    profileFiles：Array，按界面顺序存储Profile文件名
     currentProfile：int， 当前激活的配置页面编号
     safezone： Array，安全区域的配置int
     configSchemaVersion：int，配置格式版本
 返回：
     无
 */
-SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, configSchemaVersion){
+SaveCfgFile(cfgFileName, profileFiles, currentProfile, safezone, configSchemaVersion){
     Gui, 1:Default
     createOrTruncateFile(cfgFileName)
 
@@ -808,8 +784,7 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, configSchemaVersion){
     GuiControlGet, helperAnimationSpeedDropdown
 
     IniWrite, %configSchemaVersion%, %cfgFileName%, General, version
-    IniWrite, %currentProfile%, %cfgFileName%, General, activatedprofile
-    IniWrite, %tabs%, %cfgFileName%, General, profiles
+    IniWrite, % profileFiles[currentProfile], %cfgFileName%, General, activatedprofile
     IniWrite, %extraGambleHelperCKbox%, %cfgFileName%, General, enablegamblehelper
     IniWrite, %extraGambleHelperUpdown%, %cfgFileName%, General, gamblehelpertimes
     IniWrite, %extraSmartPause%, %cfgFileName%, General, enablesmartpause
@@ -825,8 +800,8 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, configSchemaVersion){
     IniWrite, %extraLootHelperCkbox%, %cfgFileName%, General, enableloothelper
     IniWrite, %extraLootHelperUpdown%, %cfgFileName%, General, loothelpertimes
     IniWrite, %extraSoundonProfileSwitch%, %cfgFileName%, General, enablesoundplay
-    IniWrite, %helperKeybindingHK%, %cfgFileName%, General, oldsandhelperhk
-    IniWrite, %helperKeybindingdropdown%, %cfgFileName%, General, oldsandhelpermethod
+    IniWrite, %helperKeybindingHK%, %cfgFileName%, General, helperhotkey
+    IniWrite, %helperKeybindingdropdown%, %cfgFileName%, General, helpermethod
     IniWrite, %extraCustomMoving%, %cfgFileName%, General, custommoving
     IniWrite, %extraCustomMovingHK%, %cfgFileName%, General, custommovinghk
     IniWrite, %extraCustomStanding%, %cfgFileName%, General, customstanding
@@ -853,14 +828,11 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, configSchemaVersion){
     IniWrite, %StartRunHKInput%, %cfgFileName%, General, starthotkey
     global combats, PROFILE_DIRECTORY
     FileCreateDir, %PROFILE_DIRECTORY%
-    Loop, parse, tabs, `|
+    for cSection, profileFileName in profileFiles
     {
-        cSection:=A_Index
-        nSction:=A_LoopField
-        profileFile:=GetProfileFile(cSection)
+        profileFile:=PROFILE_DIRECTORY "\" profileFileName
         createOrTruncateFile(profileFile)
         profileSection:="Profile"
-        IniWrite, %nSction%, %profileFile%, %profileSection%, name
         Loop, 6
         {
             GuiControlGet, skillset%cSection%s%A_Index%hotkey
@@ -919,15 +891,8 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, configSchemaVersion){
     Return
 }
 
-GetProfileFile(profileIndex){
-    Global PROFILE_DIRECTORY
-    Return PROFILE_DIRECTORY "\profile-" Format("{:03}", profileIndex) ".ini"
-}
-
-CreateDefaultProfileFile(profileIndex, profileName){
-    profileFile:=GetProfileFile(profileIndex)
+CreateDefaultProfileFile(profileFile){
     createOrTruncateFile(profileFile)
-    IniWrite, %profileName%, %profileFile%, Profile, name
     Loop, 6
     {
         IniWrite, 1, %profileFile%, Profile, action_%A_Index%
@@ -957,11 +922,12 @@ CreateDefaultProfileFile(profileIndex, profileName){
     IniWrite, 0, %profileFile%, Profile, autostartmarco
 }
 
-JoinArrayValues(sep, values){
-    output:=""
-    for _, value in values
-        output .= (output="" ? "" : sep) value
-    Return output
+IsValidProfileName(profileName){
+    if (profileName="" or RegExMatch(profileName, "[<>:|?*\\/]") or InStr(profileName, Chr(34)))
+        Return False
+    if RegExMatch(profileName, "[ .]$")
+        Return False
+    Return !RegExMatch(profileName, "i)^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$")
 }
 
 /*
@@ -1177,7 +1143,7 @@ createOrTruncateFile(FileName){
 返回：
     无
 */
-oldsandHelper(){
+UtilityHelper(){
     local
     Global helperRunning, helperBreak, helperDelay, mouseDelay, vRunning, helperAnimationDelay, helperMouseSpeed, gameX, gameY
     if helperRunning{
@@ -3316,7 +3282,7 @@ Return
 
 SaveNow:
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     GuiControl, 1:, SaveButton, 已保存
     SetTimer, ResetSaveButton, -1200
 Return
@@ -3346,26 +3312,21 @@ AddProfile:
     if ErrorLevel
         Return
     newProfileName:=Trim(newProfileName)
-    if (newProfileName="" or InStr(newProfileName, "|") or InStr(newProfileName, "`n"))
+    if !IsValidProfileName(newProfileName)
     {
-        MsgBox, 48, 名称无效, Profile 名称不能为空，也不能包含竖线或换行。
+        MsgBox, 48, 名称无效, Profile 名称包含Windows文件名不允许使用的字符。
         Return
     }
-    for _, existingProfileName in tabsarray
+    newProfileFile:=newProfileName ".ini"
+    if FileExist(PROFILE_DIRECTORY "\" newProfileFile)
     {
-        if (existingProfileName=newProfileName)
-        {
-            MsgBox, 48, 名称重复, 已存在同名 Profile。
-            Return
-        }
+        MsgBox, 48, 名称重复, 已存在同名 Profile。
+        Return
     }
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
-    newProfileIndex:=tabslen+1
-    CreateDefaultProfileFile(newProfileIndex, newProfileName)
-    tabs:=tabs "|" newProfileName
-    IniWrite, %tabs%, d3oldsand.ini, General, profiles
-    IniWrite, %newProfileIndex%, d3oldsand.ini, General, activatedprofile
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    CreateDefaultProfileFile(PROFILE_DIRECTORY "\" newProfileFile)
+    IniWrite, %newProfileFile%, %SETTINGS_FILE%, General, activatedprofile
     Reload
 Return
 
@@ -3378,26 +3339,30 @@ RenameProfile:
     if ErrorLevel
         Return
     newProfileName:=Trim(newProfileName)
-    if (newProfileName="" or InStr(newProfileName, "|") or InStr(newProfileName, "`n"))
+    if !IsValidProfileName(newProfileName)
     {
-        MsgBox, 48, 名称无效, Profile 名称不能为空，也不能包含竖线或换行。
+        MsgBox, 48, 名称无效, Profile 名称包含Windows文件名不允许使用的字符。
         Return
     }
-    for index, existingProfileName in tabsarray
+    oldProfileFile:=profileFiles[profileIndex]
+    newProfileFile:=newProfileName ".ini"
+    if (newProfileFile=oldProfileFile)
+        Return
+    if FileExist(PROFILE_DIRECTORY "\" newProfileFile)
     {
-        if (index!=profileIndex and existingProfileName=newProfileName)
-        {
-            MsgBox, 48, 名称重复, 已存在同名 Profile。
-            Return
-        }
+        MsgBox, 48, 名称重复, 已存在同名 Profile。
+        Return
     }
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
-    tabsarray[profileIndex]:=newProfileName
-    tabs:=JoinArrayValues("|", tabsarray)
-    profileFile:=GetProfileFile(profileIndex)
-    IniWrite, %newProfileName%, %profileFile%, Profile, name
-    IniWrite, %tabs%, d3oldsand.ini, General, profiles
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    FileMove, % PROFILE_DIRECTORY "\" oldProfileFile, % PROFILE_DIRECTORY "\" newProfileFile
+    if ErrorLevel
+    {
+        MsgBox, 16, 重命名失败, 无法重命名Profile文件。
+        Return
+    }
+    activatedProfileFile:=(currentProfile=profileIndex) ? newProfileFile : profileFiles[currentProfile]
+    IniWrite, %activatedProfileFile%, %SETTINGS_FILE%, General, activatedprofile
     Reload
 Return
 
@@ -3415,20 +3380,19 @@ DeleteProfile:
     IfMsgBox, Cancel
         Return
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
-    FileDelete, % GetProfileFile(profileIndex)
-    Loop, % tabslen-profileIndex
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    FileDelete, % PROFILE_DIRECTORY "\" profileFiles[profileIndex]
+    if ErrorLevel
     {
-        sourceProfileFile:=GetProfileFile(profileIndex+A_Index)
-        targetProfileFile:=GetProfileFile(profileIndex+A_Index-1)
-        FileMove, %sourceProfileFile%, %targetProfileFile%, 1
+        MsgBox, 16, 删除失败, 无法删除Profile文件。
+        Return
     }
-    tabsarray.RemoveAt(profileIndex)
-    tabslen-=1
-    tabs:=JoinArrayValues("|", tabsarray)
-    currentProfile:=Min(profileIndex, tabslen)
-    IniWrite, %tabs%, d3oldsand.ini, General, profiles
-    IniWrite, %currentProfile%, d3oldsand.ini, General, activatedprofile
+    profileFiles.RemoveAt(profileIndex)
+    if (currentProfile=profileIndex)
+        currentProfile:=Min(profileIndex, profileFiles.Count())
+    Else if (currentProfile>profileIndex)
+        currentProfile-=1
+    IniWrite, % profileFiles[currentProfile], %SETTINGS_FILE%, General, activatedprofile
     Reload
 Return
 
@@ -3450,7 +3414,7 @@ SaveSkillAdvanced:
         combats[advancedProfileIndex][A_Index]["triggerbutton"]:=triggerButton
     }
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     Gui, 3:Destroy
     GuiControl, 2:, SettingsFeedback, 高级技能设置已保存
 Return
@@ -3545,25 +3509,25 @@ SetHelperKeybinding:
     GuiControlGet, HelperKeybindingHK
     Try
     {
-        Hotkey, ~*%oldsandHelperHK%, oldsandHelper, off
+        Hotkey, ~*%utilityHelperHK%, UtilityHelper, off
     }
     switch HelperKeybindingdropdown
     {
         case 1:
             GuiControl, Disable, HelperKeybindingHK
-            newoldsandHelperHK:=""
+            newUtilityHelperHK:=""
         case 2,3,4,5,6:
             GuiControl, Disable, HelperKeybindingHK
-            newoldsandHelperHK:=mouseKeyArray[HelperKeybindingdropdown]
+            newUtilityHelperHK:=mouseKeyArray[HelperKeybindingdropdown]
         case 7:
             GuiControl, Enable, HelperKeybindingHK
-            newoldsandHelperHK:=HelperKeybindingHK
+            newUtilityHelperHK:=HelperKeybindingHK
     }
     Try
     {
-        Hotkey, ~*%oldsandHelperHK%, oldsandHelper, off
-        Hotkey, ~*%newoldsandHelperHK%, oldsandHelper, on
-        oldsandHelperHK:=newoldsandHelperHK
+        Hotkey, ~*%utilityHelperHK%, UtilityHelper, off
+        Hotkey, ~*%newUtilityHelperHK%, UtilityHelper, on
+        utilityHelperHK:=newUtilityHelperHK
     }
 Return
 
@@ -3979,7 +3943,7 @@ NumpadDel::NumpadDot
 GuiClose(){
     Global
     Gui, Submit
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     vFront:=False
     Return
 }
@@ -3994,7 +3958,7 @@ GuiShowMainWindow(){
 GuiExit(){
     Global
     Gui, Submit
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     ExitApp
 }
 
