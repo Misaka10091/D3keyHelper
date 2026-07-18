@@ -44,7 +44,7 @@ jobs:
 
       - name: Build package
         shell: pwsh
-        run: .\build.cmd -CompilerPath $env:AHK2EXE
+        run: .\scripts\build.cmd -CompilerPath $env:AHK2EXE
 
       - name: Resolve artifact version
         shell: pwsh

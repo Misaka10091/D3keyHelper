@@ -5,9 +5,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$projectRoot = Split-Path -Parent $PSScriptRoot
 
 if (-not $OutputPath) {
-    $OutputPath = Join-Path $PSScriptRoot "dist\D3keyHelper.exe"
+    $OutputPath = Join-Path $projectRoot "dist\D3keyHelper.exe"
 }
 
 function Find-Ahk2Exe {
@@ -41,7 +42,7 @@ function Find-Ahk2Exe {
     throw "Ahk2Exe.exe was not found. Install AutoHotkey v1.1 or pass -CompilerPath."
 }
 
-$sourcePath = Join-Path $PSScriptRoot "d3keyhelper.ahk"
+$sourcePath = Join-Path $projectRoot "src\d3keyhelper.ahk"
 if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
     throw "Source file was not found: $sourcePath"
 }
@@ -54,7 +55,7 @@ if (-not (Test-Path -LiteralPath $baseFile -PathType Leaf)) {
 }
 
 if (-not [System.IO.Path]::IsPathRooted($OutputPath)) {
-    $OutputPath = Join-Path $PSScriptRoot $OutputPath
+    $OutputPath = Join-Path $projectRoot $OutputPath
 }
 $outputDirectory = Split-Path -Parent $OutputPath
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null

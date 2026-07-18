@@ -4,7 +4,7 @@
 ; 转载请注明原作者
 ; 
 ; 
-; 查看最新更新：https://github.com/WeijieH/D3keyHelper
+; 查看最新更新：https://github.com/Misaka10091/D3keyHelper
 ; 欢迎提交bug，PR
 ; =================================================================
 
@@ -18,7 +18,8 @@ if (A_AhkVersion < AHK_MIN_VERSION)
 #NoEnv
 #InstallKeybdHook
 #InstallMouseHook
-SetWorkingDir %A_ScriptDir%
+APP_DIRECTORY:=A_IsCompiled ? A_ScriptDir : RegExReplace(A_ScriptDir, "\\src$")
+SetWorkingDir %APP_DIRECTORY%
 SetBatchLines -1
 Thread, interrupt, 0
 CoordMode, Pixel, Client
@@ -27,6 +28,10 @@ Process, Priority, , High
 
 VERSION:=260403 ; 配置文件格式版本，不能随构建日期自动变化
 DISPLAY_VERSION:="1.4.260718"
+PROFILE_DIRECTORY:="profiles"
+PROJECT_HOMEPAGE:="https://github.com/Misaka10091/D3keyHelper"
+PROJECT_MAINTAINER:="Misaka10091"
+ORIGINAL_AUTHOR:="Oldsand"
 if (A_IsCompiled)
 {
     FileGetVersion, executableVersion, %A_ScriptFullPath%
@@ -57,7 +62,7 @@ runOnStart:= generals.runonstart
 d3only:= generals.d3only
 maxreforge:= (generals.maxreforge)?generals.maxreforge:10
 TitleString:=(d3only)? "暗黑3技能连点器":"鼠标键盘连点器"
-TITLE:=TitleString " v" DISPLAY_VERSION "   by Oldsand"
+TITLE:=TitleString " v" DISPLAY_VERSION "   by " PROJECT_MAINTAINER
 helperMouseSpeed:= generals.helpermousespeed
 helperAnimationDelay:= generals.helperanimationdelay
 gameResolution:= InStr(generals.gameresolution, "x")? generals.gameresolution:"Auto"
@@ -273,10 +278,10 @@ GuiCreate(){
     Gui Add, Text, xs+20 yp+40 hwndhelperSpeedTextID gdummyFunction, 助手宏动画速度：
     AddToolTip(helperSpeedTextID, "当网络延迟较高时，适当降低动画速度可以减少宏出错的概率")
     Gui Add, DropDownList, % "x+5 yp-3 w90 vhelperAnimationSpeedDropdown hwndhelperAnimationSpeedDropdownID AltSubmit Choose" generals.helperspeed, 非常快||快速||中等||慢速||自定义
-    AddToolTip(helperAnimationSpeedDropdownID, "非常快：鼠标速度0，动画延迟50`n快速：鼠标速度1，动画延迟100`n中等：鼠标速度2，动画延迟150`n慢速：鼠标速度3，动画延迟200`n自定义：使用配置文件中的预设值")
+    AddToolTip(helperAnimationSpeedDropdownID, "非常快：鼠标速度0，动画延迟50`n快速：鼠标速度1，动画延迟100`n中等：鼠标速度2，动画延迟150`n慢速：鼠标速度3，动画延迟200`n自定义：使用“应用设置”中的高级参数")
 
     Gui Add, Text, x+20 yp+4 w80 hwndhelperSafeZoneTextID vhelperSafeZoneText gdummyFunction
-    AddToolTip(helperSafeZoneTextID, "修改配置文件中Generals区块下的safezone值来设置安全格`n格式为英文逗号连接的格子编号`n左上角格子编号为1，右上角为10，左下角为51，右下角为60")
+    AddToolTip(helperSafeZoneTextID, "可在“应用设置”中设置安全格`n左上角编号为1，右上角为10，左下角为51，右下角为60")
 
     Gui Add, CheckBox, % "xs+20 yp+35 hwndextraGambleHelperCKboxID vextraGambleHelperCKbox gSetGambleHelper Checked" generals.enablegamblehelper, 血岩赌博助手：
     AddToolTip(extraGambleHelperCKboxID, "赌博时按下助手快捷键可以自动点击右键")
@@ -297,7 +302,7 @@ GuiCreate(){
 
     Gui Add, CheckBox, % "xs+20 yp+40 hwndextraReforgeHelperCkboxID vextraReforgeHelperCkbox gSetReforgeHelper Checked" generals.enablereforgehelper, 魔盒重铸助手：
     Gui Add, DropDownList, % "x+5 yp-4 w180 AltSubmit hwndextraReforgeHelperDropdownID vextraReforgeHelperDropdown Choose" generals.reforgehelpermethod, 重铸一次||重铸直到远古，太古||重铸直到太古
-    AddToolTip(extraReforgeHelperCkboxID, "当魔盒打开且在重铸页面时，按下助手快捷键可以自动执行所选择的重铸策略`n***最大重铸次数可以通过配置文件中的maxreforge变量修改***")
+    AddToolTip(extraReforgeHelperCkboxID, "当魔盒打开且在重铸页面时，按下助手快捷键可以自动执行所选择的重铸策略`n最大重铸次数可在“应用设置”中修改")
     local strMaxReforge1:= "不停重铸鼠标指针处的装备，直到变为远古或者太古装备，最多重铸" maxreforge "次"
     local strMaxReforge2:= "不停重铸鼠标指针处的装备，直到变成太古装备，最多重铸" maxreforge "次"
     AddToolTip(extraReforgeHelperDropdownID, "重铸一次：重铸鼠标指针处的装备一次`n重铸直到远古，太古：" strMaxReforge1 "`n重铸直到太古：" strMaxReforge2 "`n***重铸过程中再次按下助手快捷键可以打断宏！***")
@@ -337,11 +342,203 @@ GuiCreate(){
     Gui Add, Text, x505 yp +cRed hwndCurrentmodeTextID gdummyFunction, % A_SendMode
     Gui Font, s9
     Gui Add, Text, xp-95 ys hwndSendmodeTextID gdummyFunction, 按键发送模式：
-    AddToolTip(SendmodeTextID, "修改配置文件General区块下的sendmode值来设置按键发送模式")
+    AddToolTip(SendmodeTextID, "点击“应用设置”可切换按键发送模式")
     AddToolTip(CurrentmodeTextID, "Event：默认模式，最佳兼容性`nInput：推荐模式，最佳速度但可能会被一些杀毒防护软件屏蔽干扰")
-    Gui Add, Link, x570 ys hwndAboutLinkID, 本项目开源在：<a href="https://github.com/WeijieH/D3keyHelper">https://github.com/WeijieH/D3keyHelper</a>
-    AddToolTip(AboutLinkID, "别忘了给我一个star哟~ ╰(*°▽°*)╯")
+    Gui Add, Button, x570 ys-8 w55 h25 gShowAbout, 关于
+    Gui Add, Link, x635 ys hwndAboutLinkID, <a href="https://github.com/Misaka10091/D3keyHelper">项目主页</a>
+    AddToolTip(AboutLinkID, PROJECT_HOMEPAGE)
+    Gui Add, Button, x710 ys-8 w75 h25 vSaveButton gSaveNow, 保存
+    AddToolTip(SaveButton, "立即保存全局设置和所有 profile")
+    Gui Add, Button, x795 ys-8 w90 h25 gShowAppSettings, 应用设置
     Return
+}
+
+ShowAboutWindow(){
+    Global
+    Gui, 4:Destroy
+    Gui, 4:New, +Owner1 +OwnDialogs -MaximizeBox -MinimizeBox, 关于 D3KeyHelper
+    Gui, 4:Margin, 20, 16
+    Gui, 4:Font, s14 Bold, Segoe UI
+    Gui, 4:Add, Text, x20 y18 w400 Center, D3KeyHelper
+    Gui, 4:Font, s9 Normal, Segoe UI
+    Gui, 4:Add, Text, x20 y55 w400 Center, % "版本 " DISPLAY_VERSION
+    Gui, 4:Add, Text, x20 y86 w400 Center, % "维护者：" PROJECT_MAINTAINER "    原作者：" ORIGINAL_AUTHOR
+    Gui, 4:Add, Text, x20 y116 w400 Center c666666, 基于 MIT License 开源
+    Gui, 4:Add, Text, x20 y150 w400 Center, 项目主页
+    Gui, 4:Add, Link, x20 y174 w400 Center, <a href="https://github.com/Misaka10091/D3keyHelper">https://github.com/Misaka10091/D3keyHelper</a>
+    Gui, 4:Add, Text, x20 y211 w400 Center c666666, % "配置目录：" APP_DIRECTORY
+    Gui, 4:Add, Button, x180 y246 w80 h28 Default gCloseAbout, 确定
+    Gui, 4:Show, w440 h294
+    Return
+}
+
+ShowAppSettingsWindow(){
+    Global
+    Gui, 2:Destroy
+    Gui, 2:New, +Owner1 +OwnDialogs -MaximizeBox -MinimizeBox, 应用设置
+    Gui, 2:Margin, 16, 14
+    Gui, 2:Font, s9, Segoe UI
+
+    Gui, 2:Add, GroupBox, x16 y14 w458 h120 section, 运行与按键
+    Gui, 2:Add, CheckBox, xs+18 ys+25 vsettingsD3Only Checked%d3only%, 仅在暗黑破坏神 III 窗口中启用按键宏
+    Gui, 2:Add, CheckBox, xs+18 yp+28 vsettingsRunOnStart Checked%runOnStart%, 启动战斗宏时立即执行一次策略
+    Gui, 2:Add, Text, xs+18 yp+32, 按键发送模式：
+    Gui, 2:Add, DropDownList, x+8 yp-3 w120 vsettingsSendMode, Event|Input|Play|InputThenPlay
+    GuiControl, 2:ChooseString, settingsSendMode, %A_SendMode%
+    Gui, 2:Add, Text, x+25 yp+3, 游戏分辨率：
+    Gui, 2:Add, ComboBox, x+8 yp-3 w105 vsettingsResolution, Auto|1280x720|1366x768|1600x900|1920x1080|2560x1440|3840x2160
+    GuiControl, 2:Text, settingsResolution, %gameResolution%
+
+    Gui, 2:Add, GroupBox, x16 y144 w458 h126 section, 检测参数
+    Gui, 2:Add, Text, xs+18 ys+28, 背包安全格：
+    Gui, 2:Add, Edit, x+8 yp-3 w280 vsettingsSafeZone, % keyJoin(",", safezone)
+    Gui, 2:Add, Text, xs+18 yp+29 c666666, 使用英文逗号分隔编号；留空表示不保护任何格子。
+    Gui, 2:Add, Text, xs+18 yp+31, 游戏 Gamma：
+    Gui, 2:Add, ComboBox, x+8 yp-3 w75 vsettingsGameGamma, 0.80|0.90|1.00|1.10|1.20|1.30|1.40|1.50
+    GuiControl, 2:Text, settingsGameGamma, %gameGamma%
+    Gui, 2:Add, Text, x+28 yp+3, Buff 提前刷新：
+    Gui, 2:Add, ComboBox, x+8 yp-3 w65 vsettingsBuffPercent, 0|2.5|5|7.5|10|15|20
+    GuiControl, 2:Text, settingsBuffPercent, % Round(buffpercent*100, 2)
+    Gui, 2:Add, Text, x+4 yp+3, % "%"
+
+    Gui, 2:Add, GroupBox, x16 y280 w458 h126 section, 助手高级参数
+    Gui, 2:Add, Text, xs+18 ys+28, 最大重铸次数：
+    Gui, 2:Add, ComboBox, x+8 yp-3 w70 vsettingsMaxReforge, 10|25|50|100|250|500
+    GuiControl, 2:Text, settingsMaxReforge, %maxreforge%
+    Gui, 2:Add, Text, x+28 yp+3, 自定义鼠标速度：
+    Gui, 2:Add, ComboBox, x+8 yp-3 w70 vsettingsMouseSpeed, 0|1|2|3|5|10
+    GuiControl, 2:Text, settingsMouseSpeed, %helperMouseSpeed%
+    Gui, 2:Add, Text, xs+18 yp+31, 自定义动画延迟：
+    Gui, 2:Add, ComboBox, x+8 yp-3 w70 vsettingsAnimationDelay, 50|100|150|200|300|500|1000
+    GuiControl, 2:Text, settingsAnimationDelay, %helperAnimationDelay%
+    Gui, 2:Add, Text, x+8 yp+3, 毫秒
+    Gui, 2:Add, Text, xs+18 yp+31 c666666, 选择“自定义”助手速度时使用以上两个参数。
+
+    Gui, 2:Add, GroupBox, x16 y416 w458 h110 section, Profile 管理
+    Gui, 2:Add, Text, xs+18 ys+27, 当前：
+    Gui, 2:Add, DropDownList, x+8 yp-4 w150 AltSubmit vsettingsProfileSelection Choose%currentProfile%, %tabs%
+    Gui, 2:Add, Button, x+8 yp-2 w58 h25 gAddProfile, 新增
+    Gui, 2:Add, Button, x+5 yp w58 h25 gRenameProfile, 重命名
+    Gui, 2:Add, Button, x+5 yp w58 h25 gDeleteProfile, 删除
+    Gui, 2:Add, Text, xs+18 yp+36, % tabslen " 个 profile 分别保存在 " PROFILE_DIRECTORY " 目录"
+    Gui, 2:Add, Button, x+15 yp-6 w90 h25 gOpenProfileDirectory, 打开目录
+    Gui, 2:Add, Button, x+6 yp w115 h25 gShowSkillAdvanced, 高级技能设置
+
+    Gui, 2:Add, Text, x16 y544 w280 h22 vSettingsFeedback c348017
+    Gui, 2:Add, Button, x302 y538 w82 h28 Default gSaveAppSettings, 应用并保存
+    Gui, 2:Add, Button, x392 y538 w82 h28 gCloseAppSettings, 取消
+    Gui, 2:Show, w490 h582
+    Return
+}
+
+ShowSkillAdvancedWindow(profileIndex){
+    Global
+    advancedProfileIndex:=profileIndex
+    Gui, 3:Destroy
+    Gui, 3:New, +Owner2 +OwnDialogs -MaximizeBox -MinimizeBox, % "高级技能设置 - " tabsarray[profileIndex]
+    Gui, 3:Margin, 16, 14
+    Gui, 3:Font, s9, Segoe UI
+    Gui, 3:Add, Text, x90 y16 w55 Center, 优先级
+    Gui, 3:Add, Text, x160 y16 w65 Center, 重复次数
+    Gui, 3:Add, Text, x240 y16 w75 Center, 重复间隔
+    Gui, 3:Add, Text, x330 y16 w105 Center, 按键触发键
+    skillLabels:=["技能一", "技能二", "技能三", "技能四", "左键技能", "右键技能"]
+    Loop, 6
+    {
+        rowY:=44+(A_Index-1)*34
+        priority:=combats[profileIndex][A_Index]["priority"]
+        repeatCount:=combats[profileIndex][A_Index]["repeat"]
+        repeatInterval:=combats[profileIndex][A_Index]["repeatinterval"]
+        triggerButton:=combats[profileIndex][A_Index]["triggerbutton"]
+        if (triggerButton="")
+            triggerButton:="LButton"
+        Gui, 3:Add, Text, % "x16 y" rowY+4 " w65 Right", % skillLabels[A_Index] "："
+        Gui, 3:Add, Edit, % "x92 y" rowY " w52 Number"
+        Gui, 3:Add, UpDown, % "vskillAdvanced" A_Index "Priority Range1-100", %priority%
+        Gui, 3:Add, Edit, % "x166 y" rowY " w52 Number"
+        Gui, 3:Add, UpDown, % "vskillAdvanced" A_Index "Repeat Range1-100", %repeatCount%
+        Gui, 3:Add, Edit, % "x246 y" rowY " w65 Number"
+        Gui, 3:Add, UpDown, % "vskillAdvanced" A_Index "RepeatInterval Range0-5000", %repeatInterval%
+        Gui, 3:Add, Edit, % "x334 y" rowY " w100 vskillAdvanced" A_Index "Trigger", %triggerButton%
+    }
+    Gui, 3:Add, Text, x16 y255 w280 c666666, 按键触发键仅在策略选择“按键触发”时使用。
+    Gui, 3:Add, Button, x276 y282 w80 h28 Default gSaveSkillAdvanced, 保存
+    Gui, 3:Add, Button, x364 y282 w80 h28 gCloseSkillAdvanced, 取消
+    Gui, 3:Show, w460 h326
+    Return
+}
+
+ApplyAppSettings(){
+    Global
+    Gui, 2:Submit, NoHide
+    settingsResolution:=Trim(settingsResolution)
+    settingsSafeZone:=StrReplace(Trim(settingsSafeZone), " ", "")
+
+    if (!RegExMatch(settingsResolution, "i)^(Auto|[1-9]\d{2,4}x[1-9]\d{2,4})$"))
+    {
+        MsgBox, 48, 设置有误, 游戏分辨率应为 Auto 或“宽x高”，例如 1920x1080。
+        Return False
+    }
+    if (!RegExMatch(settingsGameGamma, "^\d+(\.\d+)?$") or settingsGameGamma<0.5 or settingsGameGamma>1.5)
+    {
+        MsgBox, 48, 设置有误, 游戏 Gamma 必须在 0.5 到 1.5 之间。
+        Return False
+    }
+    if (!RegExMatch(settingsBuffPercent, "^\d+(\.\d+)?$") or settingsBuffPercent<0 or settingsBuffPercent>100)
+    {
+        MsgBox, 48, 设置有误, Buff 提前刷新百分比必须在 0 到 100 之间。
+        Return False
+    }
+    if (!RegExMatch(settingsMaxReforge, "^\d+$") or settingsMaxReforge<1 or settingsMaxReforge>999)
+    {
+        MsgBox, 48, 设置有误, 最大重铸次数必须是 1 到 999 之间的整数。
+        Return False
+    }
+    if (!RegExMatch(settingsMouseSpeed, "^\d+$") or settingsMouseSpeed<0 or settingsMouseSpeed>100)
+    {
+        MsgBox, 48, 设置有误, 自定义鼠标速度必须是 0 到 100 之间的整数。
+        Return False
+    }
+    if (!RegExMatch(settingsAnimationDelay, "^\d+$") or settingsAnimationDelay<0 or settingsAnimationDelay>5000)
+    {
+        MsgBox, 48, 设置有误, 自定义动画延迟必须是 0 到 5000 之间的整数。
+        Return False
+    }
+
+    newSafeZone:={}
+    if (settingsSafeZone!="")
+    {
+        Loop, Parse, settingsSafeZone, CSV
+        {
+            if (!RegExMatch(A_LoopField, "^\d{1,2}$") or A_LoopField<1 or A_LoopField>99)
+            {
+                MsgBox, 48, 设置有误, 安全格必须是 1 到 99 的整数，并使用英文逗号分隔。
+                Return False
+            }
+            newSafeZone[A_LoopField]:=1
+        }
+    }
+
+    safezone:=newSafeZone
+    d3only:=settingsD3Only
+    runOnStart:=settingsRunOnStart
+    gameResolution:=RegExMatch(settingsResolution, "i)^auto$") ? "Auto" : settingsResolution
+    gameGamma:=settingsGameGamma+0
+    buffpercent:=(settingsBuffPercent+0)/100
+    maxreforge:=settingsMaxReforge
+    helperMouseSpeed:=settingsMouseSpeed
+    helperAnimationDelay:=settingsAnimationDelay
+    SendMode, %settingsSendMode%
+
+    TitleString:=(d3only)? "暗黑3技能连点器":"鼠标键盘连点器"
+    TITLE:=TitleString " v" DISPLAY_VERSION "   by " PROJECT_MAINTAINER
+    GuiControl, 1:, TitleBarText, %TITLE%
+    GuiControl, 1:, CurrentmodeText, %A_SendMode%
+    Gui, 1:Default
+    SetSalvageHelper()
+    Gui, 1:Submit, NoHide
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    Return True
 }
 
 /*
@@ -385,9 +582,13 @@ StartUp(){
 SetTrayMenu(){
     Global
     Menu, Tray, NoStandard
-    Menu, Tray, Add, 设置, GuiShowMainWindow
+    Menu, Tray, Add, 显示主窗口, GuiShowMainWindow
+    Menu, Tray, Add, 应用设置, ShowAppSettings
+    Menu, Tray, Add, 保存所有设置, SaveNow
+    Menu, Tray, Add, 关于, ShowAbout
+    Menu, Tray, Add
     Menu, Tray, Add, 退出, GuiExit
-    Menu, Tray, Default, 设置
+    Menu, Tray, Default, 显示主窗口
     Menu, Tray, Click, 1
     Menu, Tray, Tip, %TITLE%
     Menu, Tray, Icon, , , 1
@@ -413,7 +614,7 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
         IniRead, ver, %cfgFileName%, General, version
         if (VERSION != ver)
         {
-            MsgBox, 配置文件版本不匹配，如有错误请删除配置文件并手动配置。
+            MsgBox, 配置文件版本不匹配。程序会尽量兼容读取，请在“应用设置”中检查后重新保存。
         }
         IniRead, currentProfile, %cfgFileName%, General, activatedprofile, 1
         IniRead, oldsandhelperhk, %cfgFileName%, General, oldsandhelperhk, F5
@@ -462,50 +663,76 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
         , "safezone":safezone, "helperspeed":helperspeed, "gamegamma":gamegamma, "sendmode":sendmode, "buffpercent":buffpercent
         , "enableloothelper":enableloothelper, "loothelpertimes":loothelpertimes, "compactmode":compactmode}
 
-        IniRead, tabs, %cfgFileName%
-        tabs:=StrReplace(StrReplace(tabs, "`n", "`|"), "General|", "")
+        ; 新格式仅在主配置中保存清单，每个 profile 使用独立文件。
+        ; 未找到清单时回退读取旧版 section，下一次保存时自动完成迁移。
+        IniRead, profileList, %cfgFileName%, General, profiles, __legacy__
+        isLegacyProfileStorage:=(profileList="__legacy__")
+        if isLegacyProfileStorage
+        {
+            IniRead, tabs, %cfgFileName%
+            tabs:=StrReplace(StrReplace(tabs, "`n", "`|"), "General|", "")
+        }
+        Else
+        {
+            tabs:=profileList
+        }
+        if (tabs="")
+            tabs:="配置1"
         combats:=[]
         others:=[]
         Loop, parse, tabs, `|
         {
             cSection:=A_LoopField
+            profileFile:=GetProfileFile(A_Index)
+            if (!isLegacyProfileStorage and FileExist(profileFile))
+            {
+                sourceFile:=profileFile
+                sourceSection:="Profile"
+            }
+            Else
+            {
+                sourceFile:=cfgFileName
+                sourceSection:=cSection
+            }
             trow:=[]
             tos:={}
             Loop, 6
             {
-                IniRead, hk, %cfgFileName%, %cSection%, skill_%A_Index%, %A_Index%
-                IniRead, ac, %cfgFileName%, %cSection%, action_%A_Index%, 1
-                IniRead, iv, %cfgFileName%, %cSection%, interval_%A_Index%, 300
-                IniRead, dy, %cfgFileName%, %cSection%, delay_%A_Index%, 10
-                IniRead, rd, %cfgFileName%, %cSection%, random_%A_Index%, 1
-                IniRead, pr, %cfgFileName%, %cSection%, priority_%A_Index%, 1
-                IniRead, rp, %cfgFileName%, %cSection%, repeat_%A_Index%, 1
-                IniRead, rpiv, %cfgFileName%, %cSection%, repeatinterval_%A_Index%, 30
-                IniRead, tgbt, %cfgFileName%, %cSection%, triggerbutton_%A_Index%, LButton
+                IniRead, hk, %sourceFile%, %sourceSection%, skill_%A_Index%, %A_Index%
+                IniRead, ac, %sourceFile%, %sourceSection%, action_%A_Index%, 1
+                IniRead, iv, %sourceFile%, %sourceSection%, interval_%A_Index%, 300
+                IniRead, dy, %sourceFile%, %sourceSection%, delay_%A_Index%, 10
+                IniRead, rd, %sourceFile%, %sourceSection%, random_%A_Index%, 1
+                IniRead, pr, %sourceFile%, %sourceSection%, priority_%A_Index%, 1
+                IniRead, rp, %sourceFile%, %sourceSection%, repeat_%A_Index%, 1
+                IniRead, rpiv, %sourceFile%, %sourceSection%, repeatinterval_%A_Index%, 30
+                IniRead, tgbt, %sourceFile%, %sourceSection%, triggerbutton_%A_Index%, LButton
                 trow.Push({"hotkey":hk, "action":ac, "interval":iv, "delay":dy, "random":rd, "priority":pr, "repeat":rp, "repeatinterval":rpiv, "triggerbutton": tgbt})
             }
             combats.Push(trow)
-            IniRead, pfmd, %cfgFileName%, %cSection%, profilehkmethod, 1
-            IniRead, pfhk, %cfgFileName%, %cSection%, profilehkkey
-            IniRead, pfmv, %cfgFileName%, %cSection%, movingmethod, 1
-            IniRead, pfmi, %cfgFileName%, %cSection%, movinginterval, 100
-            IniRead, pfpo, %cfgFileName%, %cSection%, potionmethod, 1
-            IniRead, pfpi, %cfgFileName%, %cSection%, potioninterval, 500
-            IniRead, pflm, %cfgFileName%, %cSection%, lazymode, 1
-            IniRead, pfqp, %cfgFileName%, %cSection%, enablequickpause, 0
-            IniRead, pfqpm1, %cfgFileName%, %cSection%, quickpausemethod1, 1
-            IniRead, pfqpm2, %cfgFileName%, %cSection%, quickpausemethod2, 1
-            IniRead, pfqpm3, %cfgFileName%, %cSection%, quickpausemethod3, 1
-            IniRead, pfqpdy, %cfgFileName%, %cSection%, quickpausedelay, 1500
-            IniRead, pfusq, %cfgFileName%, %cSection%, useskillqueue, 0
-            IniRead, pfusqiv, %cfgFileName%, %cSection%, useskillqueueinterval, 200
-            IniRead, pfasm, %cfgFileName%, %cSection%, autostartmarco, 0
+            IniRead, pfmd, %sourceFile%, %sourceSection%, profilehkmethod, 1
+            IniRead, pfhk, %sourceFile%, %sourceSection%, profilehkkey
+            IniRead, pfmv, %sourceFile%, %sourceSection%, movingmethod, 1
+            IniRead, pfmi, %sourceFile%, %sourceSection%, movinginterval, 100
+            IniRead, pfpo, %sourceFile%, %sourceSection%, potionmethod, 1
+            IniRead, pfpi, %sourceFile%, %sourceSection%, potioninterval, 500
+            IniRead, pflm, %sourceFile%, %sourceSection%, lazymode, 1
+            IniRead, pfqp, %sourceFile%, %sourceSection%, enablequickpause, 0
+            IniRead, pfqpm1, %sourceFile%, %sourceSection%, quickpausemethod1, 1
+            IniRead, pfqpm2, %sourceFile%, %sourceSection%, quickpausemethod2, 1
+            IniRead, pfqpm3, %sourceFile%, %sourceSection%, quickpausemethod3, 1
+            IniRead, pfqpdy, %sourceFile%, %sourceSection%, quickpausedelay, 1500
+            IniRead, pfusq, %sourceFile%, %sourceSection%, useskillqueue, 0
+            IniRead, pfusqiv, %sourceFile%, %sourceSection%, useskillqueueinterval, 200
+            IniRead, pfasm, %sourceFile%, %sourceSection%, autostartmarco, 0
             tos:={"profilemethod":pfmd, "profilehotkey":pfhk, "movingmethod":pfmv, "movinginterval":pfmi
             , "potionmethod":pfpo, "potioninterval":pfpi, "lazymode":pflm
             , "enablequickpause":pfqp, "quickpausemethod1":pfqpm1, "quickpausemethod2":pfqpm2, "quickpausemethod3":pfqpm3
             , "quickpausedelay":pfqpdy, "useskillqueue":pfusq, "useskillqueueinterval":pfusqiv, "autostartmarco":pfasm}
             others.Push(tos)
         }
+        if (currentProfile<1 or currentProfile>combats.Count())
+            currentProfile:=1
 
     }
     Else
@@ -552,6 +779,7 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
     无
 */
 SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
+    Gui, 1:Default
     createOrTruncateFile(cfgFileName)
 
     GuiControlGet, extraGambleHelperCKbox
@@ -579,6 +807,7 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
 
     IniWrite, %VERSION%, %cfgFileName%, General, version
     IniWrite, %currentProfile%, %cfgFileName%, General, activatedprofile
+    IniWrite, %tabs%, %cfgFileName%, General, profiles
     IniWrite, %extraGambleHelperCKbox%, %cfgFileName%, General, enablegamblehelper
     IniWrite, %extraGambleHelperUpdown%, %cfgFileName%, General, gamblehelpertimes
     IniWrite, %extraSmartPause%, %cfgFileName%, General, enablesmartpause
@@ -620,11 +849,16 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
     GuiControlGet, StartRunHKInput
     IniWrite, %StartRunDropdown%, %cfgFileName%, General, startmethod
     IniWrite, %StartRunHKInput%, %cfgFileName%, General, starthotkey
-    global combats
+    global combats, PROFILE_DIRECTORY
+    FileCreateDir, %PROFILE_DIRECTORY%
     Loop, parse, tabs, `|
     {
         cSection:=A_Index
         nSction:=A_LoopField
+        profileFile:=GetProfileFile(cSection)
+        createOrTruncateFile(profileFile)
+        profileSection:="Profile"
+        IniWrite, %nSction%, %profileFile%, %profileSection%, name
         Loop, 6
         {
             GuiControlGet, skillset%cSection%s%A_Index%hotkey
@@ -636,51 +870,96 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
             rp:=combats[cSection][A_Index]["repeat"]
             rpiv:=combats[cSection][A_Index]["repeatinterval"]
             tgbt:=combats[cSection][A_Index]["triggerbutton"]
-            IniWrite, % skillset%cSection%s%A_Index%dropdown, %cfgFileName%, %nSction%, action_%A_Index%
-            IniWrite, % skillset%cSection%s%A_Index%updown, %cfgFileName%, %nSction%, interval_%A_Index%
-            IniWrite, % skillset%cSection%s%A_Index%delayupdown, %cfgFileName%, %nSction%, delay_%A_Index%
-            IniWrite, % skillset%cSection%s%A_Index%randomckbox, %cfgFileName%, %nSction%, random_%A_Index%
-            IniWrite, % pr, %cfgFileName%, %nSction%, priority_%A_Index%
-            IniWrite, % rp, %cfgFileName%, %nSction%, repeat_%A_Index%
-            IniWrite, % rpiv, %cfgFileName%, %nSction%, repeatinterval_%A_Index%
-            IniWrite, % tgbt, %cfgFileName%, %nSction%, triggerbutton_%A_Index%
+            IniWrite, % skillset%cSection%s%A_Index%dropdown, %profileFile%, %profileSection%, action_%A_Index%
+            IniWrite, % skillset%cSection%s%A_Index%updown, %profileFile%, %profileSection%, interval_%A_Index%
+            IniWrite, % skillset%cSection%s%A_Index%delayupdown, %profileFile%, %profileSection%, delay_%A_Index%
+            IniWrite, % skillset%cSection%s%A_Index%randomckbox, %profileFile%, %profileSection%, random_%A_Index%
+            IniWrite, % pr, %profileFile%, %profileSection%, priority_%A_Index%
+            IniWrite, % rp, %profileFile%, %profileSection%, repeat_%A_Index%
+            IniWrite, % rpiv, %profileFile%, %profileSection%, repeatinterval_%A_Index%
+            IniWrite, % tgbt, %profileFile%, %profileSection%, triggerbutton_%A_Index%
             if (A_Index < 5)
             {
-                IniWrite, % skillset%cSection%s%A_Index%hotkey, %cfgFileName%, %nSction%, skill_%A_Index%
+                IniWrite, % skillset%cSection%s%A_Index%hotkey, %profileFile%, %profileSection%, skill_%A_Index%
             }
         }
         GuiControlGet, skillset%cSection%profilekeybindingdropdown
         GuiControlGet, skillset%cSection%profilekeybindinghkbox
-        IniWrite, % skillset%cSection%profilekeybindingdropdown, %cfgFileName%, %nSction%, profilehkmethod
-        IniWrite, % skillset%cSection%profilekeybindinghkbox, %cfgFileName%, %nSction%, profilehkkey
+        IniWrite, % skillset%cSection%profilekeybindingdropdown, %profileFile%, %profileSection%, profilehkmethod
+        IniWrite, % skillset%cSection%profilekeybindinghkbox, %profileFile%, %profileSection%, profilehkkey
         GuiControlGet, skillset%cSection%movingdropdown
         GuiControlGet, skillset%cSection%movingupdown
-        IniWrite, % skillset%cSection%movingdropdown, %cfgFileName%, %nSction%, movingmethod
-        IniWrite, % skillset%cSection%movingupdown, %cfgFileName%, %nSction%, movinginterval
+        IniWrite, % skillset%cSection%movingdropdown, %profileFile%, %profileSection%, movingmethod
+        IniWrite, % skillset%cSection%movingupdown, %profileFile%, %profileSection%, movinginterval
         GuiControlGet, skillset%cSection%potiondropdown
         GuiControlGet, skillset%cSection%potionupdown
-        IniWrite, % skillset%cSection%potiondropdown, %cfgFileName%, %nSction%, potionmethod
-        IniWrite, % skillset%cSection%potionupdown, %cfgFileName%, %nSction%, potioninterval
+        IniWrite, % skillset%cSection%potiondropdown, %profileFile%, %profileSection%, potionmethod
+        IniWrite, % skillset%cSection%potionupdown, %profileFile%, %profileSection%, potioninterval
         GuiControlGet, skillset%cSection%profilestartmodedropdown
-        IniWrite, % skillset%cSection%profilestartmodedropdown, %cfgFileName%, %nSction%, lazymode
+        IniWrite, % skillset%cSection%profilestartmodedropdown, %profileFile%, %profileSection%, lazymode
         GuiControlGet, skillset%cSection%clickpauseckbox
-        IniWrite, % skillset%cSection%clickpauseckbox, %cfgFileName%, %nSction%, enablequickpause
+        IniWrite, % skillset%cSection%clickpauseckbox, %profileFile%, %profileSection%, enablequickpause
         GuiControlGet, skillset%cSection%clickpausedropdown1
-        IniWrite, % skillset%cSection%clickpausedropdown1, %cfgFileName%, %nSction%, quickpausemethod1
+        IniWrite, % skillset%cSection%clickpausedropdown1, %profileFile%, %profileSection%, quickpausemethod1
         GuiControlGet, skillset%cSection%clickpausedropdown2
-        IniWrite, % skillset%cSection%clickpausedropdown2, %cfgFileName%, %nSction%, quickpausemethod2
+        IniWrite, % skillset%cSection%clickpausedropdown2, %profileFile%, %profileSection%, quickpausemethod2
         GuiControlGet, skillset%cSection%clickpausedropdown3
-        IniWrite, % skillset%cSection%clickpausedropdown3, %cfgFileName%, %nSction%, quickpausemethod3
+        IniWrite, % skillset%cSection%clickpausedropdown3, %profileFile%, %profileSection%, quickpausemethod3
         GuiControlGet, skillset%cSection%clickpauseupdown
-        IniWrite, % skillset%cSection%clickpauseupdown, %cfgFileName%, %nSction%, quickpausedelay
+        IniWrite, % skillset%cSection%clickpauseupdown, %profileFile%, %profileSection%, quickpausedelay
         GuiControlGet, skillset%cSection%useskillqueueckbox
-        IniWrite, % skillset%cSection%useskillqueueckbox, %cfgFileName%, %nSction%, useskillqueue
+        IniWrite, % skillset%cSection%useskillqueueckbox, %profileFile%, %profileSection%, useskillqueue
         GuiControlGet, skillset%cSection%useskillqueueedit
-        IniWrite, % skillset%cSection%useskillqueueedit, %cfgFileName%, %nSction%, useskillqueueinterval
+        IniWrite, % skillset%cSection%useskillqueueedit, %profileFile%, %profileSection%, useskillqueueinterval
         GuiControlGet, skillset%cSection%autostartmarcockbox
-        IniWrite, % skillset%cSection%autostartmarcockbox, %cfgFileName%, %nSction%, autostartmarco
+        IniWrite, % skillset%cSection%autostartmarcockbox, %profileFile%, %profileSection%, autostartmarco
     }
     Return
+}
+
+GetProfileFile(profileIndex){
+    Global PROFILE_DIRECTORY
+    Return PROFILE_DIRECTORY "\profile-" Format("{:03}", profileIndex) ".ini"
+}
+
+CreateDefaultProfileFile(profileIndex, profileName){
+    profileFile:=GetProfileFile(profileIndex)
+    createOrTruncateFile(profileFile)
+    IniWrite, %profileName%, %profileFile%, Profile, name
+    Loop, 6
+    {
+        IniWrite, 1, %profileFile%, Profile, action_%A_Index%
+        IniWrite, 300, %profileFile%, Profile, interval_%A_Index%
+        IniWrite, 10, %profileFile%, Profile, delay_%A_Index%
+        IniWrite, 1, %profileFile%, Profile, random_%A_Index%
+        IniWrite, 1, %profileFile%, Profile, priority_%A_Index%
+        IniWrite, 1, %profileFile%, Profile, repeat_%A_Index%
+        IniWrite, 30, %profileFile%, Profile, repeatinterval_%A_Index%
+        IniWrite, LButton, %profileFile%, Profile, triggerbutton_%A_Index%
+        if (A_Index<5)
+            IniWrite, %A_Index%, %profileFile%, Profile, skill_%A_Index%
+    }
+    IniWrite, 1, %profileFile%, Profile, profilehkmethod
+    IniWrite, 1, %profileFile%, Profile, movingmethod
+    IniWrite, 100, %profileFile%, Profile, movinginterval
+    IniWrite, 1, %profileFile%, Profile, potionmethod
+    IniWrite, 500, %profileFile%, Profile, potioninterval
+    IniWrite, 1, %profileFile%, Profile, lazymode
+    IniWrite, 0, %profileFile%, Profile, enablequickpause
+    IniWrite, 1, %profileFile%, Profile, quickpausemethod1
+    IniWrite, 1, %profileFile%, Profile, quickpausemethod2
+    IniWrite, 1, %profileFile%, Profile, quickpausemethod3
+    IniWrite, 1500, %profileFile%, Profile, quickpausedelay
+    IniWrite, 0, %profileFile%, Profile, useskillqueue
+    IniWrite, 200, %profileFile%, Profile, useskillqueueinterval
+    IniWrite, 0, %profileFile%, Profile, autostartmarco
+}
+
+JoinArrayValues(sep, values){
+    output:=""
+    for _, value in values
+        output .= (output="" ? "" : sep) value
+    Return output
 }
 
 /*
@@ -883,8 +1162,8 @@ createOrTruncateFile(FileName){
         return
     }
     file.Write("; ===============================================`r`n")
-    file.Write("; 欢迎来到“老沙”D3按键宏的配置文件。`r`n")
-    file.Write("; 每个非General区块都对应一套按键配置，可以自由增删。`r`n")
+    file.Write("; D3KeyHelper 配置文件，由应用设置界面自动维护。`r`n")
+    file.Write("; 全局设置与各 Profile 已分开存储。`r`n")
     file.Write("; ===============================================`r`n")
     file.Close()
 }
@@ -989,6 +1268,8 @@ oldsandHelper(){
                 Else    ;选择其他分解选项
                 {
                     salvageIconXY:=getSalvageIconXY(D3W, D3H, "center")
+                    ; 批量按钮之间直接跳转，避免移动动画扫过已禁用的灰色按钮。
+                    SetDefaultMouseSpeed, 0
                     MouseMove, salvageIconXY[1][1], salvageIconXY[1][2]
                     ; 判断拆解按钮是否已经按下
                     if (r[2][3]<10 and r[2][1]+r[2][2]>400)
@@ -1037,6 +1318,7 @@ oldsandHelper(){
                     }
                     Sleep, % Min(helperDelay, 20)
                     ; 执行一键分解
+                    SetDefaultMouseSpeed, mouseDelay
                     fn:=Func("oneButtonSalvageHelper").Bind(D3W, D3H, xpos, ypos)
                     SetTimer, %fn%, %_wait%
                 }
@@ -3016,6 +3298,173 @@ showMainWindow(windowSizeW, windowSizeH){
     Return
 }
 ; =====================================Subroutines===================================
+ShowAbout:
+    ShowAboutWindow()
+Return
+
+CloseAbout:
+4GuiClose:
+4GuiEscape:
+    Gui, 4:Destroy
+Return
+
+ShowAppSettings:
+    ShowAppSettingsWindow()
+Return
+
+SaveNow:
+    Gui, 1:Submit, NoHide
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    GuiControl, 1:, SaveButton, 已保存
+    SetTimer, ResetSaveButton, -1200
+Return
+
+ResetSaveButton:
+    GuiControl, 1:, SaveButton, 保存
+Return
+
+SaveAppSettings:
+    if ApplyAppSettings()
+    {
+        GuiControl, 2:, SettingsFeedback, 设置已应用并保存
+        GuiControl, 1:, SaveButton, 已保存
+        SetTimer, ResetSaveButton, -1200
+    }
+Return
+
+OpenProfileDirectory:
+    FileCreateDir, %PROFILE_DIRECTORY%
+    Run, %PROFILE_DIRECTORY%
+Return
+
+AddProfile:
+    Gui, 2:+OwnDialogs
+    defaultNewProfileName:="配置" (tabslen+1)
+    InputBox, newProfileName, 新增 Profile, 请输入新 Profile 名称：,,,,,,,, %defaultNewProfileName%
+    if ErrorLevel
+        Return
+    newProfileName:=Trim(newProfileName)
+    if (newProfileName="" or InStr(newProfileName, "|") or InStr(newProfileName, "`n"))
+    {
+        MsgBox, 48, 名称无效, Profile 名称不能为空，也不能包含竖线或换行。
+        Return
+    }
+    for _, existingProfileName in tabsarray
+    {
+        if (existingProfileName=newProfileName)
+        {
+            MsgBox, 48, 名称重复, 已存在同名 Profile。
+            Return
+        }
+    }
+    Gui, 1:Submit, NoHide
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    newProfileIndex:=tabslen+1
+    CreateDefaultProfileFile(newProfileIndex, newProfileName)
+    tabs:=tabs "|" newProfileName
+    IniWrite, %tabs%, d3oldsand.ini, General, profiles
+    IniWrite, %newProfileIndex%, d3oldsand.ini, General, activatedprofile
+    Reload
+Return
+
+RenameProfile:
+    Gui, 2:Submit, NoHide
+    profileIndex:=settingsProfileSelection
+    oldProfileName:=tabsarray[profileIndex]
+    Gui, 2:+OwnDialogs
+    InputBox, newProfileName, 重命名 Profile, 请输入新的 Profile 名称：,,,,,,,, %oldProfileName%
+    if ErrorLevel
+        Return
+    newProfileName:=Trim(newProfileName)
+    if (newProfileName="" or InStr(newProfileName, "|") or InStr(newProfileName, "`n"))
+    {
+        MsgBox, 48, 名称无效, Profile 名称不能为空，也不能包含竖线或换行。
+        Return
+    }
+    for index, existingProfileName in tabsarray
+    {
+        if (index!=profileIndex and existingProfileName=newProfileName)
+        {
+            MsgBox, 48, 名称重复, 已存在同名 Profile。
+            Return
+        }
+    }
+    Gui, 1:Submit, NoHide
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    tabsarray[profileIndex]:=newProfileName
+    tabs:=JoinArrayValues("|", tabsarray)
+    profileFile:=GetProfileFile(profileIndex)
+    IniWrite, %newProfileName%, %profileFile%, Profile, name
+    IniWrite, %tabs%, d3oldsand.ini, General, profiles
+    Reload
+Return
+
+DeleteProfile:
+    Gui, 2:Submit, NoHide
+    if (tabslen<=1)
+    {
+        MsgBox, 48, 无法删除, 至少需要保留一个 Profile。
+        Return
+    }
+    profileIndex:=settingsProfileSelection
+    profileName:=tabsarray[profileIndex]
+    Gui, 2:+OwnDialogs
+    MsgBox, 49, 删除 Profile, % "确定删除“" profileName "”吗？此操作会删除对应的独立配置文件。"
+    IfMsgBox, Cancel
+        Return
+    Gui, 1:Submit, NoHide
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    FileDelete, % GetProfileFile(profileIndex)
+    Loop, % tabslen-profileIndex
+    {
+        sourceProfileFile:=GetProfileFile(profileIndex+A_Index)
+        targetProfileFile:=GetProfileFile(profileIndex+A_Index-1)
+        FileMove, %sourceProfileFile%, %targetProfileFile%, 1
+    }
+    tabsarray.RemoveAt(profileIndex)
+    tabslen-=1
+    tabs:=JoinArrayValues("|", tabsarray)
+    currentProfile:=Min(profileIndex, tabslen)
+    IniWrite, %tabs%, d3oldsand.ini, General, profiles
+    IniWrite, %currentProfile%, d3oldsand.ini, General, activatedprofile
+    Reload
+Return
+
+ShowSkillAdvanced:
+    Gui, 2:Submit, NoHide
+    ShowSkillAdvancedWindow(settingsProfileSelection)
+Return
+
+SaveSkillAdvanced:
+    Gui, 3:Submit, NoHide
+    Loop, 6
+    {
+        triggerButton:=Trim(skillAdvanced%A_Index%Trigger)
+        if (triggerButton="")
+            triggerButton:="LButton"
+        combats[advancedProfileIndex][A_Index]["priority"]:=skillAdvanced%A_Index%Priority
+        combats[advancedProfileIndex][A_Index]["repeat"]:=skillAdvanced%A_Index%Repeat
+        combats[advancedProfileIndex][A_Index]["repeatinterval"]:=skillAdvanced%A_Index%RepeatInterval
+        combats[advancedProfileIndex][A_Index]["triggerbutton"]:=triggerButton
+    }
+    Gui, 1:Submit, NoHide
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    Gui, 3:Destroy
+    GuiControl, 2:, SettingsFeedback, 高级技能设置已保存
+Return
+
+CloseSkillAdvanced:
+3GuiClose:
+3GuiEscape:
+    Gui, 3:Destroy
+Return
+
+CloseAppSettings:
+2GuiClose:
+2GuiEscape:
+    Gui, 2:Destroy
+Return
+
 spamSkillKeyA1:
 spamSkillKeyA2:
 spamSkillKeyA3:
