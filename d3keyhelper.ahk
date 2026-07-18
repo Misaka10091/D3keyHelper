@@ -25,7 +25,14 @@ CoordMode, Pixel, Client
 CoordMode, Mouse, Client
 Process, Priority, , High
 
-VERSION:=260403
+VERSION:=260403 ; 配置文件格式版本，不能随构建日期自动变化
+DISPLAY_VERSION:="1.4.260718"
+if (A_IsCompiled)
+{
+    FileGetVersion, executableVersion, %A_ScriptFullPath%
+    if RegExMatch(executableVersion, "^(\d+)\.(\d+)\.(\d{4})\.(\d{2})(\d{2})$", versionMatch)
+        DISPLAY_VERSION:=Format("{:d}.{:d}.{:02}{:02}{:02}", versionMatch1, versionMatch2, Mod(versionMatch3, 100), versionMatch4, versionMatch5)
+}
 MainWindowW:=900
 MainWindowH:=570
 CompactWindowW:=551
@@ -50,7 +57,7 @@ runOnStart:= generals.runonstart
 d3only:= generals.d3only
 maxreforge:= (generals.maxreforge)?generals.maxreforge:10
 TitleString:=(d3only)? "暗黑3技能连点器":"鼠标键盘连点器"
-TITLE:=Format(TitleString " v1.4.{:d}   by Oldsand", VERSION)
+TITLE:=TitleString " v" DISPLAY_VERSION "   by Oldsand"
 helperMouseSpeed:= generals.helpermousespeed
 helperAnimationDelay:= generals.helperanimationdelay
 gameResolution:= InStr(generals.gameresolution, "x")? generals.gameresolution:"Auto"
@@ -994,12 +1001,19 @@ oldsandHelper(){
                         ; 分解按钮已经按下，先右键取消
                         Click, Right
                         Sleep, % Min(helperDelay, 20)
+                        ; 取消后按钮状态可能改变，重新获取三种品质按钮的颜色。
+                        p:=getSalvageIconXY(D3W, D3H, "edge")
+                        r[3]:=getPixelRGB(p[2])
+                        r[4]:=getPixelRGB(p[3])
+                        r[5]:=getPixelRGB(p[4])
                     }
-                    ; 直接使用游戏内置的批量分解规则，不依赖按钮颜色判断。
-                    ; 禁用按钮不会弹出确认框，quickSalvageHelper也不会发送回车。
+                    ; 灰色按钮为禁用态，只点击带有对应品质高亮色的按钮。
+                    buttonEnabled:=[r[3][1]>135, r[4][3]>135, r[5][1]>100]
                     _wait:=-1
                     for i, buttonIndex in [2, 3, 4]
                     {
+                        if !buttonEnabled[i]
+                            Continue
                         if helperBreak
                         {
                             helperRunning:=False
