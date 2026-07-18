@@ -1010,12 +1010,14 @@ oldsandHelper(){
                                 helperRunning:=False
                                 Return
                             }
-                            ; 启动一键分解前等待装备消失
-                            _wait:=-helperDelay-50
                             MouseMove, salvageIconXY[5-i][1], salvageIconXY[5-i][2]
-                            Click
-                            Sleep, helperDelay
-                            Send {Enter}
+                            ; 滤镜或导航可能让禁用按钮的颜色超过阈值。只有实际
+                            ; 弹出确认框时才回车，避免误开聊天框导致后续分解失效。
+                            if quickSalvageHelper(D3W, D3H, helperDelay)
+                            {
+                                ; 启动一键分解前等待装备消失
+                                _wait:=-helperDelay-50
+                            }
                         }
                     }
                     ; 点击分解按钮
@@ -1334,15 +1336,22 @@ lootHelper(D3W, D3H, helperDelay){
     D3H：int，窗口区域的高度
     helperDelay：按键延迟
 返回：
-    无
+    bool，是否检测到确认框并发送了回车
 */
 quickSalvageHelper(D3W, D3H, helperDelay){
     Click
-    Sleep, helperDelay
-    if isDialogBoXOnScreen(D3W, D3H){
-        Send {Enter}
+    StartTime:=A_TickCount
+    confirmationTimeout:=Max(helperDelay, 300)
+    while (A_TickCount-StartTime<=confirmationTimeout)
+    {
+        if isDialogBoXOnScreen(D3W, D3H)
+        {
+            Send {Enter}
+            Return True
+        }
+        Sleep, 20
     }
-    Return
+    Return False
 }
 
 /*

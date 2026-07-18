@@ -1,0 +1,55 @@
+name: Build EXE
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download AutoHotkey v1
+        shell: pwsh
+        run: |
+          $version = "1.1.37.02"
+          $expectedHash = "6F3663F7CDD25063C8C8728F5D9B07813CED8780522FD1F124BA539E2854215F"
+          $archive = Join-Path $env:RUNNER_TEMP "AutoHotkey_$version.zip"
+          $installDirectory = Join-Path $env:RUNNER_TEMP "AutoHotkey_$version"
+          $url = "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$version/AutoHotkey_$version.zip"
+
+          Invoke-WebRequest -Uri $url -OutFile $archive
+          $actualHash = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+          if ($actualHash -ne $expectedHash) {
+            throw "AutoHotkey archive checksum mismatch: $actualHash"
+          }
+
+          Expand-Archive -LiteralPath $archive -DestinationPath $installDirectory -Force
+          $compiler = Join-Path $installDirectory "Compiler\Ahk2Exe.exe"
+          if (-not (Test-Path -LiteralPath $compiler -PathType Leaf)) {
+            throw "Ahk2Exe was not found after extracting AutoHotkey."
+          }
+          "AHK2EXE=$compiler" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build executable
+        shell: pwsh
+        run: .\build.cmd -CompilerPath $env:AHK2EXE
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: D3keyHelper-windows-x64
+          path: dist/D3keyHelper.exe
+          if-no-files-found: error
+          retention-days: 14

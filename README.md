@@ -3,7 +3,23 @@
 
 D3KeyHelper是一个有图形界面，可自定义配置的暗黑3鼠标宏工具。
 
-运行代码请使用最新版的AHK软件，所有测试在v1.1.33.09版本下运行通过。
+运行代码请使用AutoHotkey v1.1（不兼容v2），所有测试在v1.1.33.09版本下运行通过。
+
+## 构建
+
+安装包含Ahk2Exe的AutoHotkey v1.1后，在PowerShell中运行：
+
+```powershell
+.\build.cmd
+```
+
+默认产物为`dist\D3keyHelper.exe`。如果AutoHotkey安装在自定义目录，可显式指定编译器：
+
+```powershell
+.\build.cmd -CompilerPath "D:\Tools\AutoHotkey\Compiler\Ahk2Exe.exe"
+```
+
+推送到`main`、创建Pull Request或手动运行GitHub Actions中的`Build EXE`工作流，也会生成可下载的`D3keyHelper-windows-x64`构建产物。
 
 ## 主界面（完全模式）
 ![plot](./mainwindow.png)
