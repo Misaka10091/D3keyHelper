@@ -26,8 +26,8 @@ CoordMode, Pixel, Client
 CoordMode, Mouse, Client
 Process, Priority, , High
 
-VERSION:=260403 ; 配置文件格式版本，不能随构建日期自动变化
-DISPLAY_VERSION:="1.4.260718"
+CONFIG_SCHEMA_VERSION:=260403 ; 仅在配置结构变化时递增，与应用发布版本无关
+DISPLAY_VERSION:="development"
 PROFILE_DIRECTORY:="profiles"
 PROJECT_HOMEPAGE:="https://github.com/Misaka10091/D3keyHelper"
 PROJECT_MAINTAINER:="Misaka10091"
@@ -35,9 +35,10 @@ ORIGINAL_AUTHOR:="Oldsand"
 if (A_IsCompiled)
 {
     FileGetVersion, executableVersion, %A_ScriptFullPath%
-    if RegExMatch(executableVersion, "^(\d+)\.(\d+)\.(\d{4})\.(\d{2})(\d{2})$", versionMatch)
-        DISPLAY_VERSION:=Format("{:d}.{:d}.{:02}{:02}{:02}", versionMatch1, versionMatch2, Mod(versionMatch3, 100), versionMatch4, versionMatch5)
+    if RegExMatch(executableVersion, "^\d+\.\d+\.\d+\.\d+$")
+        DISPLAY_VERSION:=executableVersion
 }
+DISPLAY_VERSION_LABEL:=(DISPLAY_VERSION="development") ? DISPLAY_VERSION : "v" DISPLAY_VERSION
 MainWindowW:=900
 MainWindowH:=570
 CompactWindowW:=551
@@ -46,6 +47,7 @@ TitleBarHight:=25
 ;@Ahk2Exe-Obey U_M, U_M := A_MM
 ;@Ahk2Exe-Obey U_D, U_D := A_DD
 ;@Ahk2Exe-SetFileVersion 1.4.%U_Y%.%U_M%%U_D%
+;@Ahk2Exe-SetProductVersion 1.4.%U_Y%.%U_M%%U_D%
 ;@Ahk2Exe-SetLanguage 0x0804
 ;@Ahk2Exe-SetDescription 暗黑3技能连点器
 ;@Ahk2Exe-SetProductName D3keyHelper
@@ -62,7 +64,7 @@ runOnStart:= generals.runonstart
 d3only:= generals.d3only
 maxreforge:= (generals.maxreforge)?generals.maxreforge:10
 TitleString:=(d3only)? "暗黑3技能连点器":"鼠标键盘连点器"
-TITLE:=TitleString " v" DISPLAY_VERSION "   by " PROJECT_MAINTAINER
+TITLE:=TitleString " " DISPLAY_VERSION_LABEL "   by " PROJECT_MAINTAINER
 helperMouseSpeed:= generals.helpermousespeed
 helperAnimationDelay:= generals.helperanimationdelay
 gameResolution:= InStr(generals.gameresolution, "x")? generals.gameresolution:"Auto"
@@ -361,7 +363,7 @@ ShowAboutWindow(){
     Gui, 4:Font, s14 Bold, Segoe UI
     Gui, 4:Add, Text, x20 y18 w400 Center, D3KeyHelper
     Gui, 4:Font, s9 Normal, Segoe UI
-    Gui, 4:Add, Text, x20 y55 w400 Center, % "版本 " DISPLAY_VERSION
+    Gui, 4:Add, Text, x20 y55 w400 Center, % "版本 " DISPLAY_VERSION_LABEL
     Gui, 4:Add, Text, x20 y86 w400 Center, % "维护者：" PROJECT_MAINTAINER "    原作者：" ORIGINAL_AUTHOR
     Gui, 4:Add, Text, x20 y116 w400 Center c666666, 基于 MIT License 开源
     Gui, 4:Add, Text, x20 y150 w400 Center, 项目主页
@@ -531,13 +533,13 @@ ApplyAppSettings(){
     SendMode, %settingsSendMode%
 
     TitleString:=(d3only)? "暗黑3技能连点器":"鼠标键盘连点器"
-    TITLE:=TitleString " v" DISPLAY_VERSION "   by " PROJECT_MAINTAINER
+    TITLE:=TitleString " " DISPLAY_VERSION_LABEL "   by " PROJECT_MAINTAINER
     GuiControl, 1:, TitleBarText, %TITLE%
     GuiControl, 1:, CurrentmodeText, %A_SendMode%
     Gui, 1:Default
     SetSalvageHelper()
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     Return True
 }
 
@@ -607,12 +609,12 @@ SetTrayMenu(){
 */
 ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals){
     local
-    Global VERSION
+    Global CONFIG_SCHEMA_VERSION
     if FileExist(cfgFileName)
     {
         generals:={}
         IniRead, ver, %cfgFileName%, General, version
-        if (VERSION != ver)
+        if (CONFIG_SCHEMA_VERSION != ver)
         {
             MsgBox, 配置文件版本不匹配。程序会尽量兼容读取，请在“应用设置”中检查后重新保存。
         }
@@ -774,11 +776,11 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef combats, ByRef others, ByRef generals
     tabs：String，由竖线“|”分隔的配置名
     currentProfile：int， 当前激活的配置页面编号
     safezone： Array，安全区域的配置int
-    VERSION：int，版本
+    configSchemaVersion：int，配置格式版本
 返回：
     无
 */
-SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
+SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, configSchemaVersion){
     Gui, 1:Default
     createOrTruncateFile(cfgFileName)
 
@@ -805,7 +807,7 @@ SaveCfgFile(cfgFileName, tabs, currentProfile, safezone, VERSION){
     GuiControlGet, extraCustomPotionHK
     GuiControlGet, helperAnimationSpeedDropdown
 
-    IniWrite, %VERSION%, %cfgFileName%, General, version
+    IniWrite, %configSchemaVersion%, %cfgFileName%, General, version
     IniWrite, %currentProfile%, %cfgFileName%, General, activatedprofile
     IniWrite, %tabs%, %cfgFileName%, General, profiles
     IniWrite, %extraGambleHelperCKbox%, %cfgFileName%, General, enablegamblehelper
@@ -3314,7 +3316,7 @@ Return
 
 SaveNow:
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     GuiControl, 1:, SaveButton, 已保存
     SetTimer, ResetSaveButton, -1200
 Return
@@ -3358,7 +3360,7 @@ AddProfile:
         }
     }
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     newProfileIndex:=tabslen+1
     CreateDefaultProfileFile(newProfileIndex, newProfileName)
     tabs:=tabs "|" newProfileName
@@ -3390,7 +3392,7 @@ RenameProfile:
         }
     }
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     tabsarray[profileIndex]:=newProfileName
     tabs:=JoinArrayValues("|", tabsarray)
     profileFile:=GetProfileFile(profileIndex)
@@ -3413,7 +3415,7 @@ DeleteProfile:
     IfMsgBox, Cancel
         Return
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     FileDelete, % GetProfileFile(profileIndex)
     Loop, % tabslen-profileIndex
     {
@@ -3448,7 +3450,7 @@ SaveSkillAdvanced:
         combats[advancedProfileIndex][A_Index]["triggerbutton"]:=triggerButton
     }
     Gui, 1:Submit, NoHide
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     Gui, 3:Destroy
     GuiControl, 2:, SettingsFeedback, 高级技能设置已保存
 Return
@@ -3977,7 +3979,7 @@ NumpadDel::NumpadDot
 GuiClose(){
     Global
     Gui, Submit
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     vFront:=False
     Return
 }
@@ -3992,7 +3994,7 @@ GuiShowMainWindow(){
 GuiExit(){
     Global
     Gui, Submit
-    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, VERSION)
+    SaveCfgFile("d3oldsand.ini", tabs, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     ExitApp
 }
 
