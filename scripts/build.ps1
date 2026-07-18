@@ -77,9 +77,9 @@ $compileSourcePath = $sourcePath
 $temporarySourcePath = $null
 if ($releaseVersion) {
     $sourceContents = [System.IO.File]::ReadAllText($sourcePath)
-    $fileVersionPattern = '(?m)^;@Ahk2Exe-SetFileVersion\s+.*$'
-    $productVersionPattern = '(?m)^;@Ahk2Exe-SetProductVersion\s+.*$'
-    $displayVersionPattern = '(?m)^DISPLAY_VERSION:="development"$'
+    $fileVersionPattern = '(?m)^;@Ahk2Exe-SetFileVersion[^\r\n]*'
+    $productVersionPattern = '(?m)^;@Ahk2Exe-SetProductVersion[^\r\n]*'
+    $displayVersionPattern = '(?m)^DISPLAY_VERSION:="development"[ \t]*'
     if (-not [regex]::IsMatch($sourceContents, $fileVersionPattern) -or
         -not [regex]::IsMatch($sourceContents, $productVersionPattern) -or
         -not [regex]::IsMatch($sourceContents, $displayVersionPattern)) {
