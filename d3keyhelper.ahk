@@ -993,7 +993,7 @@ oldsandHelper(){
                         }
                         ; 分解按钮已经按下，右键取消然后重新获得颜色信息
                         Click, Right
-                        Sleep, helperDelay
+                        Sleep, % Min(helperDelay, 20)
                         p:=getSalvageIconXY(D3W, D3H, "edge")
                         r[3]:=getPixelRGB(p[2])
                         r[4]:=getPixelRGB(p[3])
@@ -1001,7 +1001,7 @@ oldsandHelper(){
                     }
                     ; [黄分解条件，蓝分解条件，白/灰分解条件]
                     _wait:=-1
-                    for i, _c in [r[5][1]>50, r[4][3]>65, r[3][1]>65]
+                    for i, _c in [r[5][1]>100, r[4][3]>135, r[3][1]>135]
                     {
                         if _c
                         {
@@ -1016,20 +1016,20 @@ oldsandHelper(){
                             if quickSalvageHelper(D3W, D3H, helperDelay)
                             {
                                 ; 启动一键分解前等待装备消失
-                                _wait:=-helperDelay-50
+                                _wait:=-50
                             }
                         }
                     }
                     ; 点击分解按钮
                     MouseMove, salvageIconXY[1][1], salvageIconXY[1][2]
-                    Sleep, helperDelay//2
+                    Sleep, % Min(helperDelay, 20)
                     Click
                     if helperBreak
                     {
                         helperRunning:=False
                         Return
                     }
-                    Sleep, helperDelay//2
+                    Sleep, % Min(helperDelay, 20)
                     ; 执行一键分解
                     fn:=Func("oneButtonSalvageHelper").Bind(D3W, D3H, xpos, ypos)
                     SetTimer, %fn%, %_wait%
@@ -1341,7 +1341,7 @@ lootHelper(D3W, D3H, helperDelay){
 quickSalvageHelper(D3W, D3H, helperDelay){
     Click
     StartTime:=A_TickCount
-    confirmationTimeout:=Max(helperDelay, 300)
+    confirmationTimeout:=Max(helperDelay, 150)
     while (A_TickCount-StartTime<=confirmationTimeout)
     {
         if isDialogBoXOnScreen(D3W, D3H)
@@ -1460,7 +1460,7 @@ oneButtonSalvageHelper(D3W, D3H, xpos, ypos){
                 {
                     if isDialogBoXOnScreen(D3W, D3H)
                     {
-                        Sleep, helperDelay//4
+                        Sleep, 10
                         Send {Enter}
                         StartTime2:=A_TickCount
                         ; 循环检测当前格子的装备有没有消失
@@ -1524,8 +1524,8 @@ oneButtonAbandonHelper(D3W, D3H, xpos, ypos, mousePosition){
             case -1:
                 ; 当前格子还未探开
                 Sleep, 20
-            case 10:
-                ; 当前格子有装备
+            case 10,20:
+                ; 当前格子有装备或堆叽物品
                 m:=getInventorySpaceXY(D3W, D3H, i, "bag")
                 MouseMove, m[1], m[2]
                 if (stashOpen=-1)
@@ -1618,7 +1618,7 @@ potionHelper(action){
 }
 
 /*
-扫描所有背包格子。未扫描-1，安全格0，没东西1，有东西10
+扫描所有背包格子。未扫描-1，安全格0，没东西1，有装备10，有堆叠数量的物品20
 参数：
     D3W：int，窗口区域的宽度
     D3H：int，窗口区域的高度
@@ -1629,9 +1629,16 @@ scanInventorySpaceGDIP(D3W, D3H){
     local
     static _spaceSizeInnerW:=64
     static _spaceSizeInnerH:=63
-    ; 使用GDI+库抓取当前屏幕
+    scale:=D3H/1440
+    firstSpace:=getInventorySpaceXY(D3W, D3H, 1, "bag")
+    lastSpace:=getInventorySpaceXY(D3W, D3H, 60, "bag")
+    captureLeft:=firstSpace[3]
+    captureTop:=firstSpace[4]
+    captureWidth:=lastSpace[3]+Round(_spaceSizeInnerW*scale)-captureLeft
+    captureHeight:=lastSpace[4]+Round(_spaceSizeInnerH*scale)-captureTop
+    ; 只抓取背包区域，避免每次扫描复制整个游戏画面
     sxy:=getGameXYonScreen(0, 0)
-    pInventoryBitmap:=Gdip_BitmapFromScreen(Format("{}|{}|{}|{}", sxy[1], sxy[2], D3W, D3H))
+    pInventoryBitmap:=Gdip_BitmapFromScreen(Format("{}|{}|{}|{}", sxy[1]+captureLeft, sxy[2]+captureTop, captureWidth, captureHeight))
     Gdip_LockBits(pInventoryBitmap, 0, 0, Gdip_GetImageWidth(pInventoryBitmap), Gdip_GetImageHeight(pInventoryBitmap), Stride, Scan0, BitmapData)
     static _e:=[[0.65625,0.71429], [0.375,0.36508], [0.725,0.251]]
     Global safezone, helperBagZone, cInventorySpace
@@ -1639,8 +1646,9 @@ scanInventorySpaceGDIP(D3W, D3H){
     Loop, 60
     {
         m:=getInventorySpaceXY(D3W, D3H, A_Index, "bag")
+        localPosition:=[m[1]-captureLeft, m[2]-captureTop, m[3]-captureLeft, m[4]-captureTop]
         ; 保存当前格子左下角的颜色信息
-        cInventorySpace[A_Index]:=splitRGB(Gdip_GetLockBitPixel(Scan0, Round(m[3]+_spaceSizeInnerW*0.08*D3H/1440), Round(m[4]+_spaceSizeInnerH*0.7*D3H/1440), Stride))
+        cInventorySpace[A_Index]:=splitRGB(Gdip_GetLockBitPixel(Scan0, Round(localPosition[3]+_spaceSizeInnerW*0.08*scale), Round(localPosition[4]+_spaceSizeInnerH*0.7*scale), Stride))
         if safezone.HasKey(A_Index)
         {
             helperBagZone[A_Index]:=0
@@ -1653,7 +1661,7 @@ scanInventorySpaceGDIP(D3W, D3H){
             r:=1
             for i, p in _e
             {
-                xy:=[Round(m[3]+_spaceSizeInnerW*_e[i][1]*D3H/1440), Round(m[4]+_spaceSizeInnerH*_e[i][2]*D3H/1440)]
+                xy:=[Round(localPosition[3]+_spaceSizeInnerW*_e[i][1]*scale), Round(localPosition[4]+_spaceSizeInnerH*_e[i][2]*scale)]
                 c:=splitRGB(Gdip_GetLockBitPixel(Scan0, xy[1], xy[2], Stride))
                 if !(c[1]<22 and c[2]<20 and c[3]<15 and c[1]>c[3] and c[2]>c[3])
                 {
@@ -1661,12 +1669,52 @@ scanInventorySpaceGDIP(D3W, D3H){
                     Break
                 }
             }
+            if (r=10 and hasInventoryStackCount(Scan0, Stride, localPosition, D3H))
+            {
+                r:=20
+            }
             helperBagZone[A_Index]:=r
         }
     }
     Gdip_UnlockBits(pInventoryBitmap, BitmapData)
     Gdip_DisposeImage(pInventoryBitmap)
     Return
+}
+
+/*
+判断背包格子右下角是否显示堆叠数量。材料、宝石和大部分消耗品会显示数量，
+装备右下角的品质星标带有明显色差，不满足中性高亮条件。
+*/
+hasInventoryStackCount(Scan0, Stride, position, D3H){
+    local
+    scale:=D3H/1440
+    startX:=Round(position[3]+52*scale)
+    endX:=Round(position[3]+62*scale)
+    startY:=Round(position[4]+38*scale)
+    endY:=Round(position[4]+53*scale)
+    requiredPixels:=Max(2, Round(6*scale*scale))
+    matchedPixels:=0
+
+    Loop, % endX-startX+1
+    {
+        x:=startX+A_Index-1
+        Loop, % endY-startY+1
+        {
+            y:=startY+A_Index-1
+            c:=splitRGB(Gdip_GetLockBitPixel(Scan0, x, y, Stride))
+            maxChannel:=Max(c[1], c[2], c[3])
+            minChannel:=Min(c[1], c[2], c[3])
+            if (minChannel>=120 and maxChannel-minChannel<=45)
+            {
+                matchedPixels++
+                if (matchedPixels>=requiredPixels)
+                {
+                    Return True
+                }
+            }
+        }
+    }
+    Return False
 }
 
 /*
