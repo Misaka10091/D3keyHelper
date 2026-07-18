@@ -8,20 +8,22 @@ param(
 $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $releaseVersion = $null
+$windowsFileVersion = $null
 
 if ($Version) {
     $releaseVersion = $Version.Trim()
     if ($releaseVersion.StartsWith("v", [System.StringComparison]::OrdinalIgnoreCase)) {
         $releaseVersion = $releaseVersion.Substring(1)
     }
-    if ($releaseVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
-        throw "Version must use four numeric components, for example v1.4.2026.718."
+    if ($releaseVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
+        throw "Version must use three or four numeric components, for example v1.5.0."
     }
     foreach ($component in $releaseVersion.Split('.')) {
         if ([int64]$component -gt 65535) {
             throw "Each version component must be between 0 and 65535: $releaseVersion"
         }
     }
+    $windowsFileVersion = if ($releaseVersion.Split('.').Count -eq 3) { "$releaseVersion.0" } else { $releaseVersion }
 }
 
 if (-not $OutputPath) {
@@ -77,12 +79,15 @@ if ($releaseVersion) {
     $sourceContents = [System.IO.File]::ReadAllText($sourcePath)
     $fileVersionPattern = '(?m)^;@Ahk2Exe-SetFileVersion\s+.*$'
     $productVersionPattern = '(?m)^;@Ahk2Exe-SetProductVersion\s+.*$'
+    $displayVersionPattern = '(?m)^DISPLAY_VERSION:="development"$'
     if (-not [regex]::IsMatch($sourceContents, $fileVersionPattern) -or
-        -not [regex]::IsMatch($sourceContents, $productVersionPattern)) {
+        -not [regex]::IsMatch($sourceContents, $productVersionPattern) -or
+        -not [regex]::IsMatch($sourceContents, $displayVersionPattern)) {
         throw "Version directives were not found in the AutoHotkey source."
     }
-    $versionedSource = [regex]::Replace($sourceContents, $fileVersionPattern, ";@Ahk2Exe-SetFileVersion $releaseVersion")
+    $versionedSource = [regex]::Replace($sourceContents, $fileVersionPattern, ";@Ahk2Exe-SetFileVersion $windowsFileVersion")
     $versionedSource = [regex]::Replace($versionedSource, $productVersionPattern, ";@Ahk2Exe-SetProductVersion $releaseVersion")
+    $versionedSource = [regex]::Replace($versionedSource, $displayVersionPattern, "DISPLAY_VERSION:=`"$releaseVersion`"")
     $temporarySourcePath = Join-Path ([System.IO.Path]::GetTempPath()) "D3KeyHelper-$([guid]::NewGuid().ToString('N')).ahk"
     $utf8WithBom = [System.Text.UTF8Encoding]::new($true)
     [System.IO.File]::WriteAllText($temporarySourcePath, $versionedSource, $utf8WithBom)
@@ -122,18 +127,19 @@ $fileVersion = (Get-Item -LiteralPath $OutputPath).VersionInfo.FileVersion
 if (-not $fileVersion -or $fileVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
     throw "The compiled executable has an invalid file version: $fileVersion"
 }
-if ($releaseVersion -and $fileVersion -ne $releaseVersion) {
-    throw "Compiled file version '$fileVersion' does not match requested version '$releaseVersion'."
+if ($releaseVersion -and $fileVersion -ne $windowsFileVersion) {
+    throw "Compiled file version '$fileVersion' does not match expected Windows version '$windowsFileVersion'."
 }
 $productVersion = (Get-Item -LiteralPath $OutputPath).VersionInfo.ProductVersion
-if (-not $productVersion -or $productVersion -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+if (-not $productVersion -or $productVersion -notmatch '^\d+\.\d+\.\d+(\.\d+)?$') {
     throw "The compiled executable has an invalid product version: $productVersion"
 }
 if ($releaseVersion -and $productVersion -ne $releaseVersion) {
     throw "Compiled product version '$productVersion' does not match requested version '$releaseVersion'."
 }
 
-$archiveName = "D3keyHelper-v$fileVersion-windows-x64.zip"
+$packageVersion = if ($releaseVersion) { $releaseVersion } else { $fileVersion }
+$archiveName = "D3keyHelper-v$packageVersion-windows-x64.zip"
 $archivePath = Join-Path $outputDirectory $archiveName
 Compress-Archive -LiteralPath $OutputPath -DestinationPath $archivePath -CompressionLevel Optimal -Force
 

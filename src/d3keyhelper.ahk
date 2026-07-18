@@ -32,7 +32,7 @@ PROFILE_DIRECTORY:="profiles"
 PROJECT_HOMEPAGE:="https://github.com/Misaka10091/D3keyHelper"
 PROJECT_MAINTAINER:="Misaka10091"
 ORIGINAL_AUTHOR:="Oldsand"
-if (A_IsCompiled)
+if (A_IsCompiled and DISPLAY_VERSION="development")
 {
     FileGetVersion, executableVersion, %A_ScriptFullPath%
     if RegExMatch(executableVersion, "^\d+\.\d+\.\d+\.\d+$")

@@ -52,11 +52,11 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
           REF_TYPE: ${{ github.ref_type }}
         run: |
-          $arguments = @("-CompilerPath", $env:AHK2EXE)
+          $buildParameters = @{ CompilerPath = $env:AHK2EXE }
           if ($env:REF_TYPE -eq "tag") {
-            $arguments += @("-Version", $env:REF_NAME)
+            $buildParameters.Version = $env:REF_NAME
           }
-          & .\scripts\build.ps1 @arguments
+          & .\scripts\build.ps1 @buildParameters
 
       - name: Resolve artifact version
         id: package
@@ -72,13 +72,15 @@ jobs:
           $versionInfo = (Get-Item -LiteralPath "dist\D3keyHelper.exe").VersionInfo
           $fileVersion = $versionInfo.FileVersion
           $productVersion = $versionInfo.ProductVersion
+          $resolvedVersion = $fileVersion
           if ($env:REF_TYPE -eq "tag") {
-            if ($env:REF_NAME -notmatch '^v\d+\.\d+\.\d+\.\d+$') {
-              throw "Release tags must use vMAJOR.MINOR.BUILD.REVISION, for example v1.4.2026.718."
+            if ($env:REF_NAME -notmatch '^v\d+\.\d+\.\d+(\.\d+)?$') {
+              throw "Release tags must use vMAJOR.MINOR.PATCH or vMAJOR.MINOR.BUILD.REVISION."
             }
             $expectedVersion = $env:REF_NAME.Substring(1)
-            if ($fileVersion -ne $expectedVersion) {
-              throw "EXE version '$fileVersion' does not match tag '$env:REF_NAME'."
+            $expectedFileVersion = if ($expectedVersion.Split('.').Count -eq 3) { "$expectedVersion.0" } else { $expectedVersion }
+            if ($fileVersion -ne $expectedFileVersion) {
+              throw "EXE file version '$fileVersion' does not match expected '$expectedFileVersion'."
             }
             if ($productVersion -ne $expectedVersion) {
               throw "Product version '$productVersion' does not match tag '$env:REF_NAME'."
@@ -87,11 +89,12 @@ jobs:
             if ($archives[0].Name -ne $expectedArchive) {
               throw "Archive '$($archives[0].Name)' does not match expected '$expectedArchive'."
             }
+            $resolvedVersion = $expectedVersion
           }
           "BUILD_ARTIFACT=$($archives[0].BaseName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           "artifact_name=$($archives[0].BaseName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "archive_name=$($archives[0].Name)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "version=$fileVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "version=$resolvedVersion" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Upload package
         uses: actions/upload-artifact@v4
