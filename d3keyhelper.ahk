@@ -991,33 +991,25 @@ oldsandHelper(){
                             helperRunning:=False
                             Return
                         }
-                        ; 分解按钮已经按下，右键取消然后重新获得颜色信息
+                        ; 分解按钮已经按下，先右键取消
                         Click, Right
                         Sleep, % Min(helperDelay, 20)
-                        p:=getSalvageIconXY(D3W, D3H, "edge")
-                        r[3]:=getPixelRGB(p[2])
-                        r[4]:=getPixelRGB(p[3])
-                        r[5]:=getPixelRGB(p[4])
                     }
-                    ; [黄分解条件，蓝分解条件，白/灰分解条件]
+                    ; 直接使用游戏内置的批量分解规则，不依赖按钮颜色判断。
+                    ; 禁用按钮不会弹出确认框，quickSalvageHelper也不会发送回车。
                     _wait:=-1
-                    for i, _c in [r[5][1]>100, r[4][3]>135, r[3][1]>135]
+                    for i, buttonIndex in [2, 3, 4]
                     {
-                        if _c
+                        if helperBreak
                         {
-                            if helperBreak
-                            {
-                                helperRunning:=False
-                                Return
-                            }
-                            MouseMove, salvageIconXY[5-i][1], salvageIconXY[5-i][2]
-                            ; 滤镜或导航可能让禁用按钮的颜色超过阈值。只有实际
-                            ; 弹出确认框时才回车，避免误开聊天框导致后续分解失效。
-                            if quickSalvageHelper(D3W, D3H, helperDelay)
-                            {
-                                ; 启动一键分解前等待装备消失
-                                _wait:=-50
-                            }
+                            helperRunning:=False
+                            Return
+                        }
+                        MouseMove, salvageIconXY[buttonIndex][1], salvageIconXY[buttonIndex][2]
+                        if quickSalvageHelper(D3W, D3H, helperDelay)
+                        {
+                            ; 启动逐格分解前等待批量分解动画完成
+                            _wait:=-50
                         }
                     }
                     ; 点击分解按钮
@@ -1341,7 +1333,7 @@ lootHelper(D3W, D3H, helperDelay){
 quickSalvageHelper(D3W, D3H, helperDelay){
     Click
     StartTime:=A_TickCount
-    confirmationTimeout:=Max(helperDelay, 150)
+    confirmationTimeout:=helperDelay
     while (A_TickCount-StartTime<=confirmationTimeout)
     {
         if isDialogBoXOnScreen(D3W, D3H)
@@ -1426,7 +1418,9 @@ oneButtonSalvageHelper(D3W, D3H, xpos, ypos){
                         q:=2
                     }
                 }
-                if (i<=50 and (helperBagZone[i+10]=10 or helperBagZone[i+10]=-1))
+                ; 智能模式在跳过装备前必须识别双格物品，防止误点下半格。
+                ; 普通一键分解在物品消失后直接检查上下格，省去悬停动画等待。
+                if (extraSalvageHelperDropdown>2 and i<=50 and (helperBagZone[i+10]=10 or helperBagZone[i+10]=-1))
                 {
                     ; 如果不是最后一行，且下方格子有装备，判断下方格子边缘的颜色是否改变
                     md:=getInventorySpaceXY(D3W, D3H, i+10, "bag")
@@ -1455,6 +1449,7 @@ oneButtonSalvageHelper(D3W, D3H, xpos, ypos){
                 ; 开始分解
                 Click
                 StartTime1:=A_TickCount
+                confirmed:=False
                 ; 循环检测是否弹出确认对话框
                 while (A_TickCount-StartTime1<=helperDelay)
                 {
@@ -1462,19 +1457,22 @@ oneButtonSalvageHelper(D3W, D3H, xpos, ypos){
                     {
                         Sleep, 10
                         Send {Enter}
-                        StartTime2:=A_TickCount
-                        ; 循环检测当前格子的装备有没有消失
-                        while (A_TickCount-StartTime2<=2*helperDelay)
+                        confirmed:=True
+                        Break
+                    }
+                }
+                ; 有确认框的传奇需要等待确认生效；白蓝黄若未被批量按钮处理，
+                ; 点击后会直接消失，也由同一段空格检测收尾。
+                StartTime2:=A_TickCount
+                salvageTimeout:=confirmed ? 2*helperDelay:helperDelay
+                while (A_TickCount-StartTime2<=salvageTimeout)
+                {
+                    if isInventorySpaceEmpty(D3W, D3H, i, "", "bag")
+                    {
+                        if (i<=50 and (helperBagZone[i+10]=10 or helperBagZone[i+10]=-1) and isInventorySpaceEmpty(D3W, D3H, i+10, "", "bag"))
                         {
-                            if isInventorySpaceEmpty(D3W, D3H, i, "", "bag")
-                            {
-                                ; 再次检查下方格子有没有变为空格子
-                                if ((helperBagZone[i+10]=10 or helperBagZone[i+10]=-1) and isInventorySpaceEmpty(D3W, D3H, i+10, "", "bag"))
-                                {
-                                    helperBagZone[i+10]:=5
-                                }
-                                Break
-                            }
+                            ; 双格装备分解后上下格会同时变空，跳过下半格。
+                            helperBagZone[i+10]:=5
                         }
                         Break
                     }
