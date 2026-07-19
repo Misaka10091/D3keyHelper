@@ -22,6 +22,7 @@ skillset%currentTab%useskillqueueckbox
 - 战斗宏启动键：`SetStartRun:`
 - 快速暂停：`SetQuickPause:`
 - Profile 切换：`SetProfileKeybinding:`
+- 主界面显示/隐藏：`SetWindowToggleHotkey()`
 - 技能触发键：`RunMarco:` / `StopMarco:`
 
 继续使用项目现有的 `~*` 前缀语义，并在用 `A_ThisHotkey` 查表时像 `SwitchProfile:` 一样去掉 `~*`。空热键或禁用选项不能注册动态热键。
@@ -31,6 +32,7 @@ skillset%currentTab%useskillqueueckbox
 ## 生命周期与保存
 
 - 启动顺序由自动执行段固定：读取配置 → 创建 GUI → 托盘菜单 → `StartUp()` 注册联动/热键 → 必要时保存默认配置 → 显示窗口。
+- 主界面控件修改通过 `HandleMainGuiCommand()` / `HandleMainGuiNotify()` 调用 `ScheduleAutoSave()`，使用约 500 毫秒的一次性计时器合并连续输入，最终仍统一进入 `SaveCfgFile()`。新增 Edit、Hotkey、Checkbox、DropDownList、UpDown 或 Tab 控件时，应确认其通知类型已被这两个回调覆盖；特殊的非标准控件操作（例如紧凑布局按钮）需显式调用 `ScheduleAutoSave()`。
 - 主窗口右上角保留两个独立按钮：“—”通过一次性计时器调用 `GuiClose()`，保存并隐藏到托盘；“×”通过一次性计时器打开 `ConfirmCloseAction:`，由用户选择调用 `GuiExit()`、`GuiClose()` 或取消操作。
 - 托盘的“保存所有设置”与 Profile 新增/重命名/删除前也会调用 `SaveCfgFile()`。任何新增退出入口或破坏性 Profile 操作都必须保持先保存的语义。
 - `OnUnload()` 负责 GDI+、Shell Hook 和鼠标钩子清理。新增 DLL、钩子或原生资源必须在退出路径释放。
@@ -48,5 +50,6 @@ skillset%currentTab%useskillqueueckbox
 
 - 只注册新热键而没有关闭旧热键，导致一次操作触发多个回调。
 - 只改变控件启用状态，没有更新保存值或运行时读取位置。
+- 新增非标准 GUI 操作但未触发 `ScheduleAutoSave()`，导致界面值只在退出时才落盘。
 - 新增退出/隐藏路径但未保存配置，或新增原生资源但未在 `OnUnload()` 释放。
 - 在当前 Profile 索引变化后仍使用旧的动态控件变量或 `profileFiles` 下标。

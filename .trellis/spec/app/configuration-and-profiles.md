@@ -24,7 +24,7 @@
 7. 若字段改变了持久化结构或旧配置解释方式，递增文件顶部的 `CONFIG_SCHEMA_VERSION`；它与应用发布版本无关。
 8. 若用户可见，更新 `README.md` 的设置说明。
 
-参考字段：`safezone`、`gameresolution`、`helperanimationdelay`、`helpermousespeed`。
+参考字段：`safezone`、`gameresolution`、`helperanimationdelay`、`helpermousespeed`、`windowtogglehotkey`。其中热键字段还必须在 `StartUp()` 注册，并在修改时先关闭旧绑定再启用新绑定。
 
 ## 新增或修改 Profile 字段
 
@@ -54,4 +54,3 @@ Profile 字段需要同步：
 - 不要依赖 Profile 文件中的 `name` 字段作为显示名；当前读取逻辑以文件名为准。
 - 不要只更新示例 `settings.ini` 或本地 `profiles/` 来实现默认值；这些文件不受版本控制，真正默认值在源码中。
 - 不要静默覆盖无法解析的用户配置。对有风险的结构变化保留提示、默认值和重新保存路径。
-

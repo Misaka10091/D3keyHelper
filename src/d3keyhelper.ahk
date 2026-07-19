@@ -25,7 +25,7 @@ CoordMode, Pixel, Client
 CoordMode, Mouse, Client
 Process, Priority, , High
 
-CONFIG_SCHEMA_VERSION:=260403 ; 仅在配置结构变化时递增，与应用发布版本无关
+CONFIG_SCHEMA_VERSION:=260719 ; 仅在配置结构变化时递增，与应用发布版本无关
 DISPLAY_VERSION:="development"
 PROFILE_DIRECTORY:="profiles"
 SETTINGS_FILE:="settings.ini"
@@ -68,6 +68,7 @@ TITLE:=TitleString " " DISPLAY_VERSION_LABEL "   by " PROJECT_MAINTAINER
 helperMouseSpeed:= generals.helpermousespeed
 helperAnimationDelay:= generals.helperanimationdelay
 gameResolution:= InStr(generals.gameresolution, "x")? generals.gameresolution:"Auto"
+windowToggleHK:=generals.windowtogglehotkey
 hBMPButtonLeft_Normal := isCompact? hBMPButtonExpand_Normal:hBMPButtonBack_Normal
 hBMPButtonLeft_Hover := isCompact? hBMPButtonExpand_Hover:hBMPButtonBack_Hover
 hBMPButtonLeft_Pressed := isCompact? hBMPButtonExpand_Pressed:hBMPButtonBack_Pressed
@@ -111,6 +112,7 @@ OnLoad(){
     helperBreak:=False
     profileKeybinding:={}
     keysOnHold:={}
+    autoSaveEnabled:=False
     lastpotion:=[]
     DblClickTime:=DllCall("GetDoubleClickTime", "UInt")
     RightButtonState:=0
@@ -180,7 +182,7 @@ GuiCreate(){
     local helperSettingGroupx:=MainWindowW-345
 
     Gui Font, s11, Segoe UI
-    Gui -MaximizeBox -MinimizeBox +Owner +DPIScale +LastFound -Caption -Border
+    Gui -MaximizeBox -MinimizeBox +Owner +DPIScale +LastFound +HwndMainGuiHwnd -Caption -Border
     Gui, Margin, 5, % TitleBarHight+10
     ; SS_BITMAP:=0x40
     ; SS_REALSIZECONTROL:=0x0E
@@ -361,7 +363,7 @@ GuiCreate(){
     Gui Add, Link, x635 ys hwndAboutLinkID, <a href="https://github.com/Misaka10091/D3keyHelper">项目主页</a>
     AddToolTip(AboutLinkID, PROJECT_HOMEPAGE)
     Gui Add, Button, x710 ys-8 w75 h25 vSaveButton gSaveNow, 保存
-    AddToolTip(SaveButton, "立即保存全局设置和所有 profile")
+    AddToolTip(SaveButton, "配置修改后会自动保存；点击可立即保存全部设置")
     Gui Add, Button, x795 ys-8 w90 h25 gShowAppSettings, 应用设置
     Return
 }
@@ -395,6 +397,8 @@ ShowAppSettingsWindow(){
     Gui, 2:Add, GroupBox, x16 y14 w458 h120 section, 运行与按键
     Gui, 2:Add, CheckBox, xs+18 ys+25 vsettingsD3Only Checked%d3only%, 仅在暗黑破坏神 III 窗口中启用按键宏
     Gui, 2:Add, CheckBox, xs+18 yp+28 vsettingsRunOnStart Checked%runOnStart%, 启动战斗宏时立即执行一次策略
+    Gui, 2:Add, Text, x305 yp+3, 界面切换：
+    Gui, 2:Add, Hotkey, x+5 yp-3 w75 vsettingsWindowToggleHotkey, %windowToggleHK%
     Gui, 2:Add, Text, xs+18 yp+32, 按键发送模式：
     Gui, 2:Add, DropDownList, x+8 yp-3 w120 vsettingsSendMode, Event|Input|Play|InputThenPlay
     GuiControl, 2:ChooseString, settingsSendMode, %A_SendMode%
@@ -486,6 +490,13 @@ ApplyAppSettings(){
     Gui, 2:Submit, NoHide
     settingsResolution:=Trim(settingsResolution)
     settingsSafeZone:=StrReplace(Trim(settingsSafeZone), " ", "")
+    settingsWindowToggleHotkey:=Trim(settingsWindowToggleHotkey)
+
+    if (settingsWindowToggleHotkey="")
+    {
+        MsgBox, 48, 设置有误, 主界面切换快捷键不能为空。
+        Return False
+    }
 
     if (!RegExMatch(settingsResolution, "i)^(Auto|[1-9]\d{2,4}x[1-9]\d{2,4})$"))
     {
@@ -530,6 +541,12 @@ ApplyAppSettings(){
             }
             newSafeZone[A_LoopField]:=1
         }
+    }
+
+    if !SetWindowToggleHotkey(settingsWindowToggleHotkey)
+    {
+        MsgBox, 48, 设置有误, 无法注册主界面切换快捷键，请换一个按键后重试。
+        Return False
     }
 
     safezone:=newSafeZone
@@ -578,11 +595,97 @@ StartUp(){
     SetCustomPotion()
     SetSkillQueue()
     SetStartMode()
+    if !SetWindowToggleHotkey(windowToggleHK)
+    {
+        windowToggleHK:="Home"
+        SetWindowToggleHotkey(windowToggleHK)
+    }
 
     DllCall("RegisterShellHookWindow", "Ptr", A_ScriptHwnd)
     hHookMouse:=0
     OnMessage(DllCall("RegisterWindowMessage", "Str", "SHELLHOOK"), "Watchdog")
     Watchdog(4, 0)
+    OnMessage(0x111, "HandleMainGuiCommand") ; WM_COMMAND
+    OnMessage(0x4E, "HandleMainGuiNotify") ; WM_NOTIFY
+    autoSaveEnabled:=True
+}
+
+/*
+注册主界面显示/隐藏快捷键
+参数：
+    newHotkey：新的快捷键
+返回：
+    注册成功返回 True，否则恢复旧快捷键并返回 False
+*/
+SetWindowToggleHotkey(newHotkey){
+    local oldHotkey
+    Global windowToggleHK
+    newHotkey:=Trim(newHotkey)
+    oldHotkey:=windowToggleHK
+    Try
+    {
+        if (oldHotkey!="" and oldHotkey!=newHotkey)
+            Hotkey, ~*%oldHotkey%, ToggleMainWindow, Off
+        Hotkey, ~*%newHotkey%, ToggleMainWindow, On
+        windowToggleHK:=newHotkey
+        Return True
+    }
+    Catch e
+    {
+        if (oldHotkey!="" and oldHotkey!=newHotkey)
+        {
+            Try
+                Hotkey, ~*%oldHotkey%, ToggleMainWindow, On
+        }
+        Return False
+    }
+}
+
+/*
+监听主界面控件变化并合并自动保存请求
+参数：
+    Windows WM_COMMAND 回调参数
+返回：
+    无
+*/
+HandleMainGuiCommand(wParam, lParam, msg, hwnd){
+    local notificationCode
+    Global MainGuiHwnd, autoSaveEnabled
+    if (!autoSaveEnabled or hwnd!=MainGuiHwnd or !lParam)
+        Return
+    notificationCode:=(wParam >> 16) & 0xFFFF
+    if (notificationCode=0 or notificationCode=1 or notificationCode=5 or notificationCode=0x300)
+        ScheduleAutoSave()
+}
+
+/*
+监听主界面 Tab 与 UpDown 控件变化
+参数：
+    Windows WM_NOTIFY 回调参数
+返回：
+    无
+*/
+HandleMainGuiNotify(wParam, lParam, msg, hwnd){
+    local notificationCode
+    Global MainGuiHwnd, autoSaveEnabled
+    if (!autoSaveEnabled or hwnd!=MainGuiHwnd or !lParam)
+        Return
+    notificationCode:=NumGet(lParam + 2*A_PtrSize, 0, "Int")
+    if (notificationCode=-551 or notificationCode=-722) ; TCN_SELCHANGE / UDN_DELTAPOS
+        ScheduleAutoSave()
+}
+
+/*
+延迟并合并主界面配置保存请求
+参数：
+    delay：等待用户连续输入结束的毫秒数
+返回：
+    无
+*/
+ScheduleAutoSave(delay:=500){
+    Global autoSaveEnabled
+    if autoSaveEnabled
+        SetTimer, AutoSaveConfig, % -Abs(delay)
 }
 
 /*
@@ -631,7 +734,8 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef profileFiles, ByRef combats, ByRef ot
     , "runonstart":1, "custommoving":0, "custommovinghk":"e", "customstanding":0, "customstandinghk":"LShift"
     , "custompotion":0, "custompotionhk":"q", "helpermousespeed":2, "safezone":"61,62,63"
     , "helperspeed":3, "gamegamma":1.000000, "sendmode":"Event", "helperanimationdelay":150
-    , "buffpercent":0.050000, "enableloothelper":0, "loothelpertimes":30, "compactmode":0, "gameresolution":"Auto"}
+    , "buffpercent":0.050000, "enableloothelper":0, "loothelpertimes":30, "compactmode":0, "gameresolution":"Auto"
+    , "windowtogglehotkey":"Home"}
 
     if FileExist(cfgFileName)
     {
@@ -674,6 +778,7 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef profileFiles, ByRef combats, ByRef ot
         IniRead, helperanimationdelay, %cfgFileName%, General, helperanimationdelay, 150
         IniRead, d3only, %cfgFileName%, General, d3only, 1
         IniRead, maxreforge, %cfgFileName%, General, maxreforge, 10
+        IniRead, windowtogglehotkey, %cfgFileName%, General, windowtogglehotkey, Home
         generals:={"helpermethod":helpermethod, "helperhotkey":helperhotkey, "maxreforge":maxreforge
         , "enablesalvagehelper":enablesalvagehelper, "salvagehelpermethod":salvagehelpermethod, "reforgehelpermethod":reforgehelpermethod
         , "d3only":d3only, "enablereforgehelper":enablereforgehelper, "runonstart":runonstart, "gameresolution":gameresolution
@@ -683,7 +788,7 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef profileFiles, ByRef combats, ByRef ot
         , "custommoving":custommoving, "custommovinghk":custommovinghk, "customstanding":customstanding, "customstandinghk":customstandinghk
         , "custompotion":custompotion, "custompotionhk":custompotionhk, "safezone":safezone, "helperspeed":helperspeed
         , "gamegamma":gamegamma, "sendmode":sendmode, "buffpercent":buffpercent, "enableloothelper":enableloothelper
-        , "loothelpertimes":loothelpertimes, "compactmode":compactmode}
+        , "loothelpertimes":loothelpertimes, "compactmode":compactmode, "windowtogglehotkey":windowtogglehotkey}
     }
 
     FileCreateDir, %PROFILE_DIRECTORY%
@@ -823,7 +928,7 @@ SaveCfgFile(cfgFileName, profileFiles, currentProfile, safezone, configSchemaVer
     IniWrite, %helperAnimationSpeedDropdown%, %cfgFileName%, General, helperspeed
     safezone:=keyJoin(",", safezone)
     IniWrite, %safezone%, %cfgFileName%, General, safezone
-    Global gameGamma, buffpercent, isCompact, runOnStart, gameResolution, helperAnimationDelay, helperMouseSpeed, d3only
+    Global gameGamma, buffpercent, isCompact, runOnStart, gameResolution, helperAnimationDelay, helperMouseSpeed, d3only, windowToggleHK
     IniWrite, %d3only%, %cfgFileName%, General, d3only
     IniWrite, %gameGamma%, %cfgFileName%, General, gamegamma
     IniWrite, %A_SendMode%, %cfgFileName%, General, sendmode
@@ -833,6 +938,7 @@ SaveCfgFile(cfgFileName, profileFiles, currentProfile, safezone, configSchemaVer
     IniWrite, %gameResolution%, %cfgFileName%, General, gameresolution
     IniWrite, %helperAnimationDelay%, %cfgFileName%, General, helperanimationdelay
     IniWrite, %helperMouseSpeed%, %cfgFileName%, General, helpermousespeed
+    IniWrite, %windowToggleHK%, %cfgFileName%, General, windowtogglehotkey
     
     GuiControlGet, StartRunDropdown
     GuiControlGet, StartRunHKInput
@@ -3270,6 +3376,7 @@ MouseMove(nCode, wParam, lParam)
                             GuiControl,, % UILeftButtonID, % "HBITMAP:*" hBMPButtonLeft_Hover
                             LeftButtonState:=1
                         }
+                        ScheduleAutoSave()
                     Default:
                         if (RightButtonState!=0)
                         {
@@ -3303,16 +3410,16 @@ MouseMove(nCode, wParam, lParam)
 */
 showMainWindow(windowSizeW, windowSizeH){
     global
-    Gui Show, w%windowSizeW% h%windowSizeH%
-    GuiControl, Move, TitleBar, % "w" windowSizeW-2
-    GuiControl, Move, UIMinimizeButton, % "x" windowSizeW-60-1
-    GuiControl, Move, UIRightButton, % "x" windowSizeW-30-1
-    GuiControl, Move, TitleBarText, % "x" (windowSizeW-TitleBarSizeW)/2
-    GuiControl, Move, BorderTop, % "w" windowSizeW
-    GuiControl, Move, BorderBottom, % "y" windowSizeH-1 " w" windowSizeW
-    GuiControl, Move, BorderLeft, % "h" windowSizeH-2
-    GuiControl, Move, BorderRight, % "x" windowSizeW-1 " h" windowSizeH-2
-    WinSet, Redraw,, A
+    Gui, 1:Show, w%windowSizeW% h%windowSizeH%
+    GuiControl, 1:Move, TitleBar, % "w" windowSizeW-2
+    GuiControl, 1:Move, UIMinimizeButton, % "x" windowSizeW-60-1
+    GuiControl, 1:Move, UIRightButton, % "x" windowSizeW-30-1
+    GuiControl, 1:Move, TitleBarText, % "x" (windowSizeW-TitleBarSizeW)/2
+    GuiControl, 1:Move, BorderTop, % "w" windowSizeW
+    GuiControl, 1:Move, BorderBottom, % "y" windowSizeH-1 " w" windowSizeW
+    GuiControl, 1:Move, BorderLeft, % "h" windowSizeH-2
+    GuiControl, 1:Move, BorderRight, % "x" windowSizeW-1 " h" windowSizeH-2
+    WinSet, Redraw,, ahk_id %MainGuiHwnd%
     Return
 }
 ; =====================================Subroutines===================================
@@ -3331,6 +3438,15 @@ ShowAppSettings:
 Return
 
 SaveNow:
+    Gui, 1:Submit, NoHide
+    SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
+    GuiControl, 1:, SaveButton, 已保存
+    SetTimer, ResetSaveButton, -1200
+Return
+
+AutoSaveConfig:
+    if !autoSaveEnabled
+        Return
     Gui, 1:Submit, NoHide
     SaveCfgFile(SETTINGS_FILE, profileFiles, currentProfile, safezone, CONFIG_SCHEMA_VERSION)
     GuiControl, 1:, SaveButton, 已保存
@@ -3525,6 +3641,7 @@ SetTabFocus:
     GuiControl, , StatuesSkillsetText, % tabsarray[ActiveTab]
     currentProfile:=ActiveTab
     SetStartMode()
+    ScheduleAutoSave()
 Return
 
 ; 设置快速暂停相关的快捷键和控件动画
@@ -4008,6 +4125,13 @@ NumpadHome::Numpad7
 NumpadUp::Numpad8
 NumpadPgUp::Numpad9
 NumpadDel::NumpadDot
+
+ToggleMainWindow:
+    if DllCall("IsWindowVisible", "Ptr", MainGuiHwnd)
+        GuiClose()
+    Else
+        GuiShowMainWindow()
+Return
 ; ===================================== System Functions ==================================
 GuiClose(){
     Global
@@ -4019,7 +4143,8 @@ GuiClose(){
 
 GuiShowMainWindow(){
     Global
-    Gui, Show,, %TIELE%
+    showMainWindow(isCompact? CompactWindowW:MainWindowW, MainWindowH)
+    WinActivate, ahk_id %MainGuiHwnd%
     Return
 }
 
