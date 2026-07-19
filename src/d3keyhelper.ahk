@@ -114,10 +114,14 @@ OnLoad(){
     lastpotion:=[]
     DblClickTime:=DllCall("GetDoubleClickTime", "UInt")
     RightButtonState:=0
+    MinimizeButtonState:=0
     LeftButtonState:=0
-    _CloseButtonNormal := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAM0lEQVRIiWMYBaNgFIyCUUAsYCSkrnLe2v/khGZ7UjBes5lGo2gUjIJRMApGAVbAwMAAAMjYBAQ0LnL/AAAAAElFTkSuQmCC"
-    _CloseButtonHover := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAARklEQVRIiWN8Iaj8n2EAANNAWMowavGoxaMWj1pMCWAhpFfi/V2yjH8hqIxXfvD6mJDLyQWjqXrU4lGLRy0etZg4wMDAAACGJAZtrV+pPwAAAABJRU5ErkJggg=="
-    _CloseButtonPressed := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAARklEQVRIiWO85B32n2EAANNAWMowavGoxaMWj1pMCWAhpNftwjGyjN9lYIVXfvD6mJDLyQWjqXrU4lGLRy0etZg4wMDAAACzuwbMPgoPPgAAAABJRU5ErkJggg=="
+    _MinimizeButtonNormal := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAM0lEQVRIiWMYBaNgFIyCUUAsYCSkrnLe2v/khGZ7UjBes5lGo2gUjIJRMApGAVbAwMAAAMjYBAQ0LnL/AAAAAElFTkSuQmCC"
+    _MinimizeButtonHover := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAARklEQVRIiWN8Iaj8n2EAANNAWMowavGoxaMWj1pMCWAhpFfi/V2yjH8hqIxXfvD6mJDLyQWjqXrU4lGLRy0etZg4wMDAAACGJAZtrV+pPwAAAABJRU5ErkJggg=="
+    _MinimizeButtonPressed := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAARklEQVRIiWO85B32n2EAANNAWMowavGoxaMWj1pMCWAhpNftwjGyjN9lYIVXfvD6mJDLyQWjqXrU4lGLRy0etZg4wMDAAACzuwbMPgoPPgAAAABJRU5ErkJggg=="
+    _CloseButtonNormal := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAC3SURBVEhL7ZMxCgIxFES3tLTT0k5LLyBYiqfyBh5nj+ERUocwM0jASlEWNhC+ouBmtckrM/m84s9vmkql8g8kbZ1zE/ue+JR/BYAdyTuAk6RpnnUykm2fH/JsMN77OQBn5UaqEMLKzg5G0iKXxxhnuVTS2s4UI5eTPP9EmgghLAFceumV5Mb+KY7Z6c3ufBRskQDsXxWuKFaadmoLV1ye3fFTkYy8/B2TPFppopN3+Sh3XKlU3vEARKYVYC7faQcAAAAASUVORK5CYII="
+    _CloseButtonHover := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADtSURBVEhLY3ghqPx/IDADugC98KjFdMOjFuPF73yj/r+U0MIQJ1YeGRNt8buQxP8g8PvStf8vFQxR5ECW/dxzECz/pWMihl5smGiLX6lb/P/z8DGG5ciW/vvw8f8bMzcMvdgw0RaD8Gt9exTLX6mbo1pq54OhBxcmyWIQRrb836fPZFkKwiRbDMJvzFz///v+HWzp/z9//r/1isBQQwiTbDFynP7/+xce7OgJjhAmyWL0hPQ+LBlrgiMGE20xuqWwOEVPcMRaTrTFsHyMLSEhW06TfPx12jwMS2EYZDlYnhb5mJp41GK64VGL6YYBp6qEu3h85kwAAAAASUVORK5CYII="
+    _CloseButtonPressed := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAADuSURBVEhLYzjKL/9/IDADugC98KjFdMOjFuPFV7zD/x8XV8MQJ1YeGRNt8dXguP8g8OXS1f8n5XRR5ECWvd99ACz/qL0fQy82TLTFp9RM/v94+BjDcmRLf3/4+P+cqROGXmyYaItB+IyuNYrlp1VNUCy9YOOJoQcXJsliEEa2/M+nz2RZCsIkWwzC50wc///9/h1s6b8/f/5f9gjFUEMIk2wxcpz+//sXHuzoCY4QJsli9IR0LTQBa4IjBhNtMbqlsDhFT3DEWk60xbB8jC0hIVtOk3z8bNpcDEthGGQ5SJ4m+ZiaeNRiuuFRi+mGAbukFD/AWw6zAAAAAElFTkSuQmCC"
     _BackButtonNormal := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAr0lEQVRIie2UwQ3CMAwA7Sa0ZhJGYAOWoCswDSuUJdiAFViEtIkw8gMJEKiOan4+KY9Iji+2nIDjOFagJs/xfHnb853345gGItoA4vUz/rDbzuZsagsQaUq3IYQA36RaqsRPaYwRVm2r6tYv1GJLKWjF1lIhaoJkkJgZcs6yWHFk9nIqcddRb12xqtXY4Ilo3ZdSIE+TpmIb8T/kVc/JUl79gbzKZdqXyB3HWQ4APACzI1jSHwESAQAAAABJRU5ErkJggg=="
     _BackButtonHover := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAn0lEQVRIiWOUbL31n2EAANNAWMowavGoxYPO4j/XdzK8qFFn+Pf+Ef0sBln6ekkuAzMLCwOToBx9LIZZysLKyiDacJVsS0mymJqWEm0xtS0FAaLKalBC+v+f+CJdsvUWQTUsxBgkEj2J6j4mKqhZNN0ZRGMmM/z5/ZvhdYM2/SymheUkZSdqWk5yAYJsOSi1kwtGWyCjFo9aTB3AwMAAAPFsSKyupuluAAAAAElFTkSuQmCC"
     _BackButtonPressed := "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAZCAYAAAAmNZ4aAAAAn0lEQVRIiWM0nnz/P8MAAKaBsJRh1OJRiwedxZ8v7WA4l6fE8OvtI/pZDLL01uxMBmYWFgY2YTn6WAyzlIWVlUG/7xbZlpJkMTUtJdpialsKAkSV1aCE9P8/8UW68eT7BNWwEGOQaso0qvuYqKDm1fNgUEudzvDn92+Gi0Vq9LOYFpaTlJ2oaTnJBQiy5aDUTi4YbYGMWjxqMXUAAwMDALPRSRXM0WlaAAAAAElFTkSuQmCC"
@@ -134,6 +138,9 @@ OnLoad(){
     hBMPButtonClose_Normal := GdipCreateFromBase64(_CloseButtonNormal)
     hBMPButtonClose_Hover := GdipCreateFromBase64(_CloseButtonHover)
     hBMPButtonClose_Pressed := GdipCreateFromBase64(_CloseButtonPressed)
+    hBMPButtonMinimize_Normal := GdipCreateFromBase64(_MinimizeButtonNormal)
+    hBMPButtonMinimize_Hover := GdipCreateFromBase64(_MinimizeButtonHover)
+    hBMPButtonMinimize_Pressed := GdipCreateFromBase64(_MinimizeButtonPressed)
     hBMPButtonBack_Normal := GdipCreateFromBase64(_BackButtonNormal)
     hBMPButtonBack_Hover := GdipCreateFromBase64(_BackButtonHover)
     hBMPButtonBack_Pressed := GdipCreateFromBase64(_BackButtonPressed)
@@ -185,12 +192,14 @@ GuiCreate(){
     Gui, Add, Picture, % "x0 y1 w1 h" MainWindowH-2 " +0x4E hwndBorderLeftID vBorderLeft"
     Gui, Add, Picture, % "x" MainWindowW-1 " y1 w1 h" MainWindowH-2 " +0x4E hwndBorderRightID vBorderRight"
     Gui, Add, Text, % "x1 y1 h" TitleBarHight " hwndTitleBarTextID vTitleBarText +BackgroundTrans +0x200", %TITLE%
+    Gui, Add, Picture, % "x" MainWindowW-61 " y1 w-1 h" TitleBarHight " hwndUIMinimizeButtonID vUIMinimizeButton gdummyFunction +BackgroundTrans", % "HBITMAP:*" hBMPButtonMinimize_Normal
+    AddToolTip(UIMinimizeButtonID, "保存设置并最小化到托盘")
     Gui, Add, Picture, % "x" MainWindowW-31 " y1 w-1 h" TitleBarHight " hwndUIRightButtonID vUIRightButton gdummyFunction +BackgroundTrans", % "HBITMAP:*" hBMPButtonClose_Normal
-    AddToolTip(UIRightButtonID, "左键：保存设置并最小化窗口至右下角`n右键：保存设置并退出程序")
+    AddToolTip(UIRightButtonID, "关闭窗口，并选择退出程序或最小化到托盘")
     Gui, Add, Picture, % "x" 1 " y1 w-1 h" TitleBarHight " hwndUILeftButtonID vUILeftButton gdummyFunction +BackgroundTrans", % "HBITMAP:*" hBMPButtonLeft_Normal
     AddToolTip(UILeftButtonID, "点击以在完整，紧凑布局中切换")
     GuiControlGet, TitleBarSize, Pos , TitleBarText
-    Gui Add, Tab3, xm ym w%tabw% h%tabh% vActiveTab gSetTabFocus AltSubmit, %tabs%
+    Gui Add, Tab3, xm ym w%tabw% h%tabh% vActiveTab gSetTabFocus AltSubmit, % tabs "|＋"
     Gui Font, s9, Segoe UI
     local skillLabels:=["技能一：", "技能二：", "技能三：", "技能四：", "左键技能：", "右键技能："]
     Loop, parse, tabs, `|
@@ -685,9 +694,12 @@ ReadCfgFile(cfgFileName, ByRef tabs, ByRef profileFiles, ByRef combats, ByRef ot
     profileFileList:=RTrim(profileFileList, "`n")
     if (profileFileList="")
     {
-        defaultProfileFile:="配置1.ini"
-        CreateDefaultProfileFile(PROFILE_DIRECTORY "\" defaultProfileFile)
-        profileFileList:=defaultProfileFile
+        Loop, 4
+        {
+            defaultProfileFile:="配置" A_Index ".ini"
+            CreateDefaultProfileFile(PROFILE_DIRECTORY "\" defaultProfileFile)
+            profileFileList .= (profileFileList="" ? "" : "`n") defaultProfileFile
+        }
     }
 
     tabs:=""
@@ -3099,6 +3111,7 @@ Watchdog(wParam, lParam){
             GuiControl, Font, TitleBarText
             GuiControl,, TitleBarText, % TITLE
             GuiControl,, % UIRightButtonID, % "HBITMAP:*" hBMPButtonClose_Normal
+            GuiControl,, % UIMinimizeButtonID, % "HBITMAP:*" hBMPButtonMinimize_Normal
             GuiControl,, % UILeftButtonID, % "HBITMAP:*" hBMPButtonLeft_Normal
             if (hHookMouse){
                 DllCall("UnhookWindowsHookEx", "Uint", hHookMouse)
@@ -3156,6 +3169,27 @@ MouseMove(nCode, wParam, lParam)
                             GuiControl,, % UIRightButtonID, % "HBITMAP:*" hBMPButtonClose_Hover
                             RightButtonState:=1
                         }
+                        if (MinimizeButtonState!=0)
+                        {
+                            GuiControl,, % UIMinimizeButtonID, % "HBITMAP:*" hBMPButtonMinimize_Normal
+                            MinimizeButtonState:=0
+                        }
+                        if (LeftButtonState!=0)
+                        {
+                            GuiControl,, % UILeftButtonID, % "HBITMAP:*" hBMPButtonLeft_Normal
+                            LeftButtonState:=0
+                        }
+                    case UIMinimizeButtonID:
+                        if (MinimizeButtonState!=1)
+                        {
+                            GuiControl,, % UIMinimizeButtonID, % "HBITMAP:*" hBMPButtonMinimize_Hover
+                            MinimizeButtonState:=1
+                        }
+                        if (RightButtonState!=0)
+                        {
+                            GuiControl,, % UIRightButtonID, % "HBITMAP:*" hBMPButtonClose_Normal
+                            RightButtonState:=0
+                        }
                         if (LeftButtonState!=0)
                         {
                             GuiControl,, % UILeftButtonID, % "HBITMAP:*" hBMPButtonLeft_Normal
@@ -3172,11 +3206,21 @@ MouseMove(nCode, wParam, lParam)
                             GuiControl,, % UIRightButtonID, % "HBITMAP:*" hBMPButtonClose_Normal
                             RightButtonState:=0
                         }
+                        if (MinimizeButtonState!=0)
+                        {
+                            GuiControl,, % UIMinimizeButtonID, % "HBITMAP:*" hBMPButtonMinimize_Normal
+                            MinimizeButtonState:=0
+                        }
                     Default:
                         if (RightButtonState!=0)
                         {
                             GuiControl,, % UIRightButtonID, % "HBITMAP:*" hBMPButtonClose_Normal
                             RightButtonState:=0
+                        }
+                        if (MinimizeButtonState!=0)
+                        {
+                            GuiControl,, % UIMinimizeButtonID, % "HBITMAP:*" hBMPButtonMinimize_Normal
+                            MinimizeButtonState:=0
                         }
                         if (LeftButtonState!=0)
                         {
@@ -3189,32 +3233,32 @@ MouseMove(nCode, wParam, lParam)
                             PostMessage, 0xA1, 2,,, A ; 发送拖拽事件
                         }
                 }
-            case 0x201,0x204:
-                ; 左键，右键按下
+            case 0x201:
+                ; 左键按下
                 if (currentControlUnderMouse=UIRightButtonID)
                 {
                     GuiControl,, % UIRightButtonID, % "HBITMAP:*" hBMPButtonClose_Pressed
                     RightButtonState:=2
+                }
+                if (currentControlUnderMouse=UIMinimizeButtonID)
+                {
+                    GuiControl,, % UIMinimizeButtonID, % "HBITMAP:*" hBMPButtonMinimize_Pressed
+                    MinimizeButtonState:=2
                 }
                 if (currentControlUnderMouse=UILeftButtonID)
                 {
                     GuiControl,, % UILeftButtonID, % "HBITMAP:*" hBMPButtonLeft_Pressed
                     LeftButtonState:=2
                 }
-            case 0x202,0x205:
-                ; 左键，右键弹起
+            case 0x202:
+                ; 左键弹起
                 switch currentControlUnderMouse
                 {
                     case UIRightButtonID:
-                        if (wParam=0x202)
-                        {
-                            GuiClose()
-                        }
-                        Else
-                        {
-                            ; 必须使用SetTimer函数另起一“线程”退出程序，直接在Hook Callback函数内退出会引起钩子链断裂，鼠标失去响应。
-                            SetTimer, GuiExit, -1
-                        }
+                        ; 必须使用SetTimer另起线程显示确认框，避免阻塞低级鼠标钩子。
+                        SetTimer, ConfirmCloseAction, -1
+                    case UIMinimizeButtonID:
+                        SetTimer, GuiClose, -1
                     case UILeftButtonID:
                         showMainWindow(isCompact? MainWindowW:CompactWindowW, MainWindowH)
                         isCompact:=!isCompact
@@ -3231,6 +3275,11 @@ MouseMove(nCode, wParam, lParam)
                         {
                             GuiControl,, % UIRightButtonID, % "HBITMAP:*" hBMPButtonClose_Normal
                             RightButtonState:=0
+                        }
+                        if (MinimizeButtonState!=0)
+                        {
+                            GuiControl,, % UIMinimizeButtonID, % "HBITMAP:*" hBMPButtonMinimize_Normal
+                            MinimizeButtonState:=0
                         }
                         if (LeftButtonState!=0)
                         {
@@ -3256,6 +3305,7 @@ showMainWindow(windowSizeW, windowSizeH){
     global
     Gui Show, w%windowSizeW% h%windowSizeH%
     GuiControl, Move, TitleBar, % "w" windowSizeW-2
+    GuiControl, Move, UIMinimizeButton, % "x" windowSizeW-60-1
     GuiControl, Move, UIRightButton, % "x" windowSizeW-30-1
     GuiControl, Move, TitleBarText, % "x" (windowSizeW-TitleBarSizeW)/2
     GuiControl, Move, BorderTop, % "w" windowSizeW
@@ -3291,6 +3341,18 @@ ResetSaveButton:
     GuiControl, 1:, SaveButton, 保存
 Return
 
+ConfirmCloseAction:
+    Gui, 1:+OwnDialogs
+    MsgBox, 0x23, 关闭 D3KeyHelper, 是否退出程序？`n`n选择“是”退出程序。`n选择“否”保存设置并最小化到托盘。`n选择“取消”返回主窗口。
+    IfMsgBox, Yes
+    {
+        SetTimer, GuiExit, -1
+        Return
+    }
+    IfMsgBox, No
+        GuiClose()
+Return
+
 SaveAppSettings:
     if ApplyAppSettings()
     {
@@ -3306,7 +3368,8 @@ OpenProfileDirectory:
 Return
 
 AddProfile:
-    Gui, 2:+OwnDialogs
+    profileDialogGui:=A_Gui ? A_Gui : 1
+    Gui, %profileDialogGui%:+OwnDialogs
     defaultNewProfileName:="配置" (tabslen+1)
     InputBox, newProfileName, 新增 Profile, 请输入新 Profile 名称：,,,,,,,, %defaultNewProfileName%
     if ErrorLevel
@@ -3453,6 +3516,12 @@ Return
 ; 将currentProfile值关联到当前激活的tab
 SetTabFocus:
     Gui, Submit, NoHide
+    if (ActiveTab=tabslen+1)
+    {
+        GuiControl, Choose, ActiveTab, %currentProfile%
+        Gosub, AddProfile
+        Return
+    }
     GuiControl, , StatuesSkillsetText, % tabsarray[ActiveTab]
     currentProfile:=ActiveTab
     SetStartMode()
